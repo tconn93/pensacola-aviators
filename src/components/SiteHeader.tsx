@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import { api } from "@/lib/api";
 
 const links = [
   { href: "/", label: "Home", page: true },
@@ -13,6 +14,11 @@ const links = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    api.me().then(() => setIsAdmin(true)).catch(() => setIsAdmin(false));
+  }, []);
 
   return (
     <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--color-border)]/60 bg-[var(--color-bg)]/80 backdrop-blur-md">
@@ -32,8 +38,8 @@ export function SiteHeader() {
               </a>
             )
           )}
-          <Link to="/login" className="btn btn-outline btn-sm">
-            Club staff
+          <Link to={isAdmin ? "/admin" : "/login"} className="btn btn-outline btn-sm">
+            {isAdmin ? "Admin dashboard" : "Club staff"}
           </Link>
         </nav>
         <button
@@ -58,8 +64,8 @@ export function SiteHeader() {
               </a>
             )
           )}
-          <Link to="/login" className="btn btn-outline btn-sm" onClick={() => setOpen(false)}>
-            Club staff login
+          <Link to={isAdmin ? "/admin" : "/login"} className="btn btn-outline btn-sm" onClick={() => setOpen(false)}>
+            {isAdmin ? "Admin dashboard" : "Club staff login"}
           </Link>
         </div>
       )}
