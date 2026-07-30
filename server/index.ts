@@ -539,6 +539,9 @@ app.delete("/api/admin/admins/:id", requireAdmin, async (req, res) => {
 
 app.put("/api/admin/admins/:id/password", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
+  if (id !== req.session.admin?.id) {
+    return res.status(403).json({ error: "You can only change your own password" });
+  }
   const newPassword = String(req.body?.password || "");
   if (newPassword.length < 6) {
     return res.status(400).json({ error: "Password must be at least 6 characters" });

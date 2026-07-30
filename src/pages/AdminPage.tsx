@@ -565,13 +565,15 @@ function AdminsPanel({ currentEmail }: { currentEmail: string }) {
                 <div className="text-xs text-[var(--color-muted)]">{a.email} &middot; {a.role}</div>
               </div>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={() => setChangePwId(changePwId === a.id ? -1 : a.id)}
-                >
-                  {changePwId === a.id ? "Cancel" : "Change password"}
-                </button>
+                {a.email === currentEmail && (
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setChangePwId(changePwId === a.id ? -1 : a.id)}
+                  >
+                    {changePwId === a.id ? "Cancel" : "Change password"}
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm text-[var(--color-primary)]"
