@@ -160,7 +160,6 @@ export type SiteSettings = {
   first_session: string;
   club_name: string;
   footer_tagline: string;
-  storage_backend: string;
   stats: string;
   values: string;
   teams: string;

@@ -380,9 +380,8 @@ app.post("/api/admin/media", requireAdmin, async (req, res) => {
   const published = b.published !== false;
   const uploadedBy = req.session.admin?.email || null;
 
-  // Check if R2 storage is configured
-  const map = await getSettings();
-  const useR2 = map.storage_backend === "r2" && isR2Configured();
+  // Auto-detect: if R2 env vars are set, upload to R2; otherwise use DB
+  const useR2 = isR2Configured();
 
   if (useR2) {
     // Upload to R2
@@ -531,7 +530,6 @@ app.get("/api/admin/settings", requireAdmin, async (_req, res) => {
     sponsor_name: map.sponsor_name || "Local partners",
     club_name: map.club_name || "Pensacola Aviators",
     footer_tagline: map.footer_tagline || "Club rugby on the Gulf Coast",
-    storage_backend: map.storage_backend || "db",
     stats: map.stats || '[{"value":"Est.","label":"Gulf Coast club"},{"value":"2×","label":"Weekly training"},{"value":"15s","label":"& Sevens"},{"value":"Open","label":"Always recruiting"}]',
     values: map.values || '[{"title":"Pack","body":"We train together, compete together, and lift each other after the whistle."},{"title":"Grit","body":"Fitness, collisions, and second effort — that\'s the Aviator way."},{"title":"Community","body":"From first-timers to veterans, everyone has a role in the club."}]',
     teams: map.teams || '[{"name":"Aviators","side":"Men\'s","description":"Men\'s club side competing in fifteens seasons and sevens weekends across the Southeast."},{"name":"Aviatrix","side":"Women\'s","description":"Women\'s club side — skill development, competition, and a strong club culture."}]',
@@ -550,7 +548,6 @@ app.put("/api/admin/settings", requireAdmin, async (req, res) => {
     "sponsor_blurb", "sponsor_name",
     "duration", "first_session",
     "club_name", "footer_tagline",
-    "storage_backend",
     "stats", "values", "teams", "join_steps",
   ];
   const pairs: [string, string][] = keys.map((k) => [k, String(b[k] ?? "")]);
