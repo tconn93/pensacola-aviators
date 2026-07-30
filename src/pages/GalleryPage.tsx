@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 import { api, type GalleryAlbum, type GalleryImage } from "@/lib/api";
+import { ImageViewer } from "@/components/ImageViewer";
 
 const PER_PAGE = 8;
 
@@ -13,6 +14,7 @@ export function GalleryPage() {
   const [hasMoreAlbums, setHasMoreAlbums] = useState(true);
   const [hasMoreImages, setHasMoreImages] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [viewerIdx, setViewerIdx] = useState<number | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Initial load
@@ -53,6 +55,15 @@ export function GalleryPage() {
 
   return (
     <main>
+      {viewerIdx !== null && (
+        <ImageViewer
+          images={images.map((i) => ({ url: i.url, alt: i.alt, title: i.title }))}
+          currentIndex={viewerIdx}
+          onClose={() => setViewerIdx(null)}
+          onPrev={() => setViewerIdx((v) => (v !== null && v > 0 ? v - 1 : v))}
+          onNext={() => setViewerIdx((v) => (v !== null && v < images.length - 1 ? v + 1 : v))}
+        />
+      )}
       <section className="section-pad mt-16">
         <div className="container-x">
           <Link to="/" className="inline-flex items-center gap-1 text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)] mb-6">
@@ -114,7 +125,7 @@ export function GalleryPage() {
                         : "aspect-[4/3]"
                     }`}
                   >
-                    <img src={img.url} alt={img.alt} className="absolute inset-0 h-full w-full object-cover" />
+                    <img src={img.url} alt={img.alt} className="absolute inset-0 h-full w-full object-cover cursor-pointer" onClick={() => setViewerIdx(i)} />
                     <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[var(--color-bg)]/90 to-transparent p-4 pt-10 text-sm text-[var(--color-muted)]">
                       {img.alt || img.title}
                     </figcaption>
