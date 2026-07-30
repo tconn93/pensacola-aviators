@@ -99,6 +99,9 @@ export const api = {
     req<GalleryImage[]>(`/api/gallery/albums/${albumId}/images?offset=${offset}&limit=${limit}`),
   galleryImages: (offset: number, limit = 8) =>
     req<GalleryImage[]>(`/api/gallery/images?offset=${offset}&limit=${limit}`),
+  // Admin album
+  adminAlbumImages: (albumId: number) =>
+    req<AdminAlbumImage[]>(`/api/admin/albums/${albumId}/images`),
 };
 
 export type Admin = {
@@ -279,4 +282,15 @@ export type GalleryImage = {
   caption: string | null;
   url: string;
   sort_order: number;
+};
+
+export type AdminAlbumImage = GalleryImage & {
+  source_type: string;
+  path: string | null;
+  data_url: string | null;
+  mime_type: string | null;
+  show_in_gallery: boolean;
+  show_on_home: boolean;
+  published: boolean;
+  album_id: number | null;
 };

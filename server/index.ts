@@ -564,6 +564,28 @@ app.post("/api/admin/albums", requireAdmin, async (req, res) => {
   res.json({ ok: true, id: rows[0]?.id });
 });
 
+app.get("/api/admin/albums/:id/images", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const rows = await query(
+    `select id, title, alt, caption, source_type, path, data_url, mime_type,
+            sort_order, show_in_gallery, show_on_home, published, album_id
+     from media_assets
+     where album_id = $1
+     order by sort_order asc, id asc`,
+    [id],
+  );
+  res.json(
+    (rows as Array<Record<string, unknown>>).map((m) => ({
+      ...m,
+      url: m.source_type === "r2" && m.path
+        ? r2PublicUrl(m.path as string)
+        : m.source_type === "path" && m.path
+          ? m.path as string
+          : (m.data_url as string) || "",
+    })),
+  );
+});
+
 app.put("/api/admin/albums/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const b = req.body || {};
