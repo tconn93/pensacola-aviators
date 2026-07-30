@@ -159,19 +159,22 @@ function Hero({ site }: { site: SitePayload | null }) {
             <a href="#join" className="btn btn-primary btn-xl">
               {cta} <ArrowRight size={16} />
             </a>
-            <a href="#practice" className="btn btn-outline btn-xl">
-              See practice times
-            </a>
+            <Link to="/schedule" className="btn btn-outline btn-xl">
+              Full schedule <ArrowRight size={16} />
+            </Link>
           </div>
-          <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-sm text-[var(--color-muted)]">
-            <span className="inline-flex items-center gap-2">
-              <Clock size={16} className="text-[var(--color-primary)]" />
-              {pDays} · {pTime}
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <MapPin size={16} className="text-[var(--color-primary)]" />
-              {pAddr}
-            </span>
+          <div className="mt-10">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-subtle)] mb-2">Practice times</p>
+            <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-[var(--color-muted)]">
+              <span className="inline-flex items-center gap-2">
+                <Clock size={16} className="text-[var(--color-primary)]" />
+                {pDays} · {pTime}
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <MapPin size={16} className="text-[var(--color-primary)]" />
+                {pAddr}
+              </span>
+            </div>
           </div>
         </div>
       </div>
