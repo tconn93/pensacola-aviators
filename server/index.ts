@@ -219,6 +219,7 @@ app.post("/api/auth/login", async (req, res) => {
     const password = String(req.body?.password || "");
     const result = await loginAdmin(email, password);
     if (!result) return res.status(401).json({ error: "Invalid credentials" });
+    await query(`update admin_users set last_login = now() where id = $1`, [result.admin.id]);
     req.session.admin = { ...result.admin, needsPasswordChange: result.needsPasswordChange };
     res.json({ ok: true, admin: req.session.admin, needs_password_change: result.needsPasswordChange });
   } catch (err) {
