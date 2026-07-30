@@ -593,7 +593,7 @@ function Sponsors({ site }: { site: SitePayload | null }) {
             <div key={s.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-8 shadow-card text-center">
               {s.logo_url && (
                 <div className="aspect-[3/1] mb-4 flex items-center justify-center">
-                  <img src={s.logo_url} alt={s.name} className="max-h-14 max-w-full object-contain" />
+                  <img src={s.logo_url} alt={s.name} className="max-h-24 max-w-full object-contain" />
                 </div>
               )}
               <h3 className="heading-md !text-xl mb-1">{s.name}</h3>
