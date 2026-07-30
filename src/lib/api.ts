@@ -158,6 +158,8 @@ export type SiteSettings = {
   sponsor_name: string;
   duration: string;
   first_session: string;
+  club_name: string;
+  footer_tagline: string;
   stats: string;
   values: string;
   teams: string;
@@ -192,6 +194,8 @@ export type ClubContent = {
   sponsor_name: string;
   duration: string;
   first_session: string;
+  club_name: string;
+  footer_tagline: string;
   stats: ClubContentItem[];
   values: ClubContentItem[];
   teams: ClubContentItem[];

@@ -620,6 +620,18 @@ function SitePanel() {
         </label>
       </fieldset>
 
+      {/* ── Footer ── */}
+      <fieldset className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-3">
+        <legend className="heading-md px-1">Footer</legend>
+        <p className="text-xs text-[var(--color-muted)]">Text shown in the site footer across every page.</p>
+        <label className="block text-sm">Club name
+          <input className="field mt-1" value={form.club_name} onChange={(e) => set("club_name", e.target.value)} />
+        </label>
+        <label className="block text-sm">Tagline
+          <input className="field mt-1" value={form.footer_tagline} onChange={(e) => set("footer_tagline", e.target.value)} />
+        </label>
+      </fieldset>
+
       <button type="button" className="btn btn-primary" onClick={() => void save()}>
         {saved ? "Saved" : "Save settings"}
       </button>

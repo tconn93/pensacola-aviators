@@ -164,6 +164,8 @@ app.get("/api/site", async (_req, res) => {
         duration: map.duration || "2 hours",
         first_session: map.first_session || "Free",
         sponsor_name: map.sponsor_name || "Local partners",
+        club_name: setting(map, "club_name", "Pensacola Aviators"),
+        footer_tagline: setting(map, "footer_tagline", "Club rugby on the Gulf Coast"),
         stats: jsonArr(map, "stats", '[{"value":"Est.","label":"Gulf Coast club"},{"value":"2×","label":"Weekly training"},{"value":"15s","label":"& Sevens"},{"value":"Open","label":"Always recruiting"}]'),
         values: jsonArr(map, "values", '[{"title":"Pack","body":"We train together, compete together, and lift each other after the whistle."},{"title":"Grit","body":"Fitness, collisions, and second effort — that\u0027s the Aviator way."},{"title":"Community","body":"From first-timers to veterans, everyone has a role in the club."}]'),
         teams: jsonArr(map, "teams", '[{"name":"Aviators","side":"Men\u0027s","description":"Men\u0027s club side competing in fifteens seasons and sevens weekends across the Southeast."},{"name":"Aviatrix","side":"Women\u0027s","description":"Women\u0027s club side — skill development, competition, and a strong club culture."}]'),
@@ -502,6 +504,8 @@ app.get("/api/admin/settings", requireAdmin, async (_req, res) => {
     duration: map.duration || "2 hours",
     first_session: map.first_session || "Free",
     sponsor_name: map.sponsor_name || "Local partners",
+    club_name: map.club_name || "Pensacola Aviators",
+    footer_tagline: map.footer_tagline || "Club rugby on the Gulf Coast",
     stats: map.stats || '[{"value":"Est.","label":"Gulf Coast club"},{"value":"2×","label":"Weekly training"},{"value":"15s","label":"& Sevens"},{"value":"Open","label":"Always recruiting"}]',
     values: map.values || '[{"title":"Pack","body":"We train together, compete together, and lift each other after the whistle."},{"title":"Grit","body":"Fitness, collisions, and second effort — that\'s the Aviator way."},{"title":"Community","body":"From first-timers to veterans, everyone has a role in the club."}]',
     teams: map.teams || '[{"name":"Aviators","side":"Men\'s","description":"Men\'s club side competing in fifteens seasons and sevens weekends across the Southeast."},{"name":"Aviatrix","side":"Women\'s","description":"Women\'s club side — skill development, competition, and a strong club culture."}]',
@@ -519,6 +523,7 @@ app.put("/api/admin/settings", requireAdmin, async (req, res) => {
     "about_body", "practice_body", "join_body",
     "sponsor_blurb", "sponsor_name",
     "duration", "first_session",
+    "club_name", "footer_tagline",
     "stats", "values", "teams", "join_steps",
   ];
   const pairs: [string, string][] = keys.map((k) => [k, String(b[k] ?? "")]);
