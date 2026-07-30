@@ -8,7 +8,7 @@ export function ImageViewer({
   onPrev,
   onNext,
 }: {
-  images: { url: string; alt: string; title?: string | null }[];
+  images: { url: string; alt: string; title?: string | null; caption?: string | null }[];
   currentIndex: number;
   onClose: () => void;
   onPrev: () => void;
@@ -77,9 +77,9 @@ export function ImageViewer({
       />
 
       {/* Caption */}
-      {(img?.alt || img?.title) && (
+      {(img?.caption || img?.alt || img?.title) && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm text-[var(--color-muted)] bg-[var(--color-bg)]/60 backdrop-blur-sm px-4 py-2 rounded-full max-w-lg truncate">
-          {img.alt || img.title}
+          {img.caption || img.alt || img.title}
         </div>
       )}
 

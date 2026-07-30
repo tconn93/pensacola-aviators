@@ -106,7 +106,7 @@ export function AlbumPage() {
     <main>
       {viewerIdx !== null && !editMode && (
         <ImageViewer
-          images={images.map((i) => ({ url: i.url, alt: i.alt, title: i.title }))}
+          images={images.map((i) => ({ url: i.url, alt: i.alt, title: i.title, caption: (i as any).caption }))}
           currentIndex={viewerIdx}
           onClose={() => setViewerIdx(null)}
           onPrev={() => setViewerIdx((v) => (v !== null && v > 0 ? v - 1 : v))}
@@ -147,7 +147,7 @@ export function AlbumPage() {
                     >
                       <img src={img.url} alt={img.alt} className="absolute inset-0 h-full w-full object-cover cursor-pointer" onClick={!editMode ? () => setViewerIdx(i) : undefined} />
                       <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[var(--color-bg)]/90 to-transparent p-4 pt-10 text-sm text-[var(--color-muted)]">
-                        {img.alt || img.title}
+                        {(img as any).caption || img.alt || img.title}
                       </figcaption>
 
                       {editMode && isAdminImg && (

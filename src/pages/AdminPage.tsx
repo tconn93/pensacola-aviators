@@ -326,6 +326,7 @@ function MediaPanel() {
   const [albumList, setAlbumList] = useState<{ id: number; name: string; image_count: number }[]>([]);
   const [showNewAlbum, setShowNewAlbum] = useState(false);
   const [newAlbumName, setNewAlbumName] = useState("");
+  const [pendingCaption, setPendingCaption] = useState("");
 
   const load = useCallback(async () => {
     setItems(await api.media());
@@ -338,6 +339,7 @@ function MediaPanel() {
 
   async function onUpload(files: FileList | null, albumId?: number) {
     if (!files?.length) return;
+    const caption = pendingCaption.trim() || null;
     for (const file of Array.from(files)) {
       if (!file.type.startsWith("image/") || file.size > 1_200_000) continue;
       const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -350,12 +352,14 @@ function MediaPanel() {
         dataUrl,
         title: file.name.replace(/\.[^.]+$/, ""),
         alt: file.name,
+        caption,
         show_in_gallery: true,
         show_on_home: false,
         published: true,
         album_id: albumId,
       });
     }
+    setPendingCaption("");
     await load();
   }
 
@@ -420,16 +424,19 @@ function MediaPanel() {
       <div>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4">
           <h2 className="heading-md">All photos</h2>
-          <label className="btn btn-primary cursor-pointer">
-            Upload photos
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="sr-only"
-              onChange={(e) => { void onUpload(e.target.files); e.target.value = ""; }}
-            />
-          </label>
+          <div className="flex items-center gap-3">
+            <input className="field text-xs py-1 w-48" placeholder="Caption (optional)" value={pendingCaption} onChange={(e) => setPendingCaption(e.target.value)} />
+            <label className="btn btn-primary cursor-pointer">
+              Upload photos
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="sr-only"
+                onChange={(e) => { void onUpload(e.target.files); e.target.value = ""; }}
+              />
+            </label>
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
