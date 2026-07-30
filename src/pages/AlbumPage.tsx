@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Trash2 } from "lucide-react";
-import { api, type AdminAlbumImage, type Admin, type GalleryImage } from "@/lib/api";
+import { api, type AdminAlbumImage, type GalleryImage } from "@/lib/api";
 import { ImageViewer } from "@/components/ImageViewer";
 
 const PER_PAGE = 8;
 
 export function AlbumPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const editMode = searchParams.get("edit") === "true";
   const albumId = Number(id);
   const [album, setAlbum] = useState<{ name: string; description: string } | null>(null);
-  const [admin, setAdmin] = useState<Admin | null>(null);
   const [images, setImages] = useState<(GalleryImage | AdminAlbumImage)[]>([]);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -18,15 +19,10 @@ export function AlbumPage() {
   const [viewerIdx, setViewerIdx] = useState<number | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Check auth
-  useEffect(() => {
-    api.me().then((r) => setAdmin(r.admin)).catch(() => setAdmin(null));
-  }, []);
-
   // Load images
   useEffect(() => {
     if (!albumId) return;
-    if (admin) {
+    if (editMode) {
       // Admin mode: load all images at once
       api.adminAlbumImages(albumId).then((data) => {
         setImages(data);
@@ -45,11 +41,11 @@ export function AlbumPage() {
       const a = albums.find((x) => x.id === albumId);
       if (a) setAlbum({ name: a.name, description: a.description });
     });
-  }, [albumId, admin]);
+  }, [albumId, editMode]);
 
   // Infinite scroll (public only)
   useEffect(() => {
-    if (admin) return;
+    if (editMode) return;
     const el = sentinelRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
@@ -68,15 +64,15 @@ export function AlbumPage() {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [loading, hasMore, offset, albumId, admin]);
+  }, [loading, hasMore, offset, albumId, editMode]);
 
   if (!album) {
     return (
       <main>
         <section className="section-pad mt-16">
           <div className="container-x">
-            <Link to={admin ? "/admin" : "/gallery"} className="inline-flex items-center gap-1 text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)] mb-6">
-              <ArrowLeft size={16} /> {admin ? "Back to admin" : "Back to gallery"}
+            <Link to={editMode ? "/admin?tab=media" : "/gallery"} className="inline-flex items-center gap-1 text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)] mb-6">
+              <ArrowLeft size={16} /> {editMode ? "Back to admin" : "Back to gallery"}
             </Link>
             <p className="text-sm text-[var(--color-muted)]">Loading album...</p>
           </div>
@@ -108,7 +104,7 @@ export function AlbumPage() {
 
   return (
     <main>
-      {viewerIdx !== null && !admin && (
+      {viewerIdx !== null && !editMode && (
         <ImageViewer
           images={images.map((i) => ({ url: i.url, alt: i.alt, title: i.title }))}
           currentIndex={viewerIdx}
@@ -119,14 +115,14 @@ export function AlbumPage() {
       )}
       <section className="section-pad mt-16">
         <div className="container-x">
-          <Link to={admin ? "/admin?tab=media" : "/gallery"} className="inline-flex items-center gap-1 text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)] mb-6">
-            <ArrowLeft size={16} /> {admin ? "Back to admin" : "Back to gallery"}
+          <Link to={editMode ? "/admin?tab=media" : "/gallery"} className="inline-flex items-center gap-1 text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)] mb-6">
+            <ArrowLeft size={16} /> {editMode ? "Back to admin" : "Back to gallery"}
           </Link>
           <div className="mb-8">
             <p className="eyebrow mb-3">Album</p>
             <h1 className="heading-lg">{album.name}</h1>
             {album.description && <p className="text-sm text-[var(--color-muted)] mt-2">{album.description}</p>}
-            {admin && <p className="text-xs text-[var(--color-primary)] mt-1">Admin mode — editing album images</p>}
+            {editMode && <p className="text-xs text-[var(--color-primary)] mt-1">Admin mode — editing album images</p>}
           </div>
 
           {images.length === 0 ? (
@@ -149,12 +145,12 @@ export function AlbumPage() {
                           : "aspect-[4/3]"
                       }`}
                     >
-                      <img src={img.url} alt={img.alt} className="absolute inset-0 h-full w-full object-cover cursor-pointer" onClick={!admin ? () => setViewerIdx(i) : undefined} />
+                      <img src={img.url} alt={img.alt} className="absolute inset-0 h-full w-full object-cover cursor-pointer" onClick={!editMode ? () => setViewerIdx(i) : undefined} />
                       <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[var(--color-bg)]/90 to-transparent p-4 pt-10 text-sm text-[var(--color-muted)]">
                         {img.alt || img.title}
                       </figcaption>
 
-                      {admin && isAdminImg && (
+                      {editMode && isAdminImg && (
                         <div className="absolute top-2 right-2 flex flex-col gap-1">
                           <button
                             type="button"
@@ -167,7 +163,7 @@ export function AlbumPage() {
                         </div>
                       )}
 
-                      {admin && isAdminImg && (
+                      {editMode && isAdminImg && (
                         <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1">
                           <ToggleBadge
                             label="Home"
@@ -186,7 +182,7 @@ export function AlbumPage() {
                 })}
               </div>
 
-              {!admin && (
+              {!editMode && (
                 <>
                   <div ref={sentinelRef} className="h-10 mt-6" />
                   {loading && <p className="text-sm text-[var(--color-muted)] text-center">Loading more...</p>}

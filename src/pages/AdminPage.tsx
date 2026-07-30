@@ -390,7 +390,7 @@ function MediaPanel() {
           <div className="flex gap-3 overflow-x-auto pb-3 mb-4">
             {albumList.map((a) => (
               <div key={a.id} className="shrink-0 w-48 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-card">
-                <Link to={`/gallery/${a.id}`} className="font-medium text-sm truncate block hover:text-[var(--color-primary)]">{a.name}</Link>
+                <Link to={`/gallery/${a.id}?edit=true`} className="font-medium text-sm truncate block hover:text-[var(--color-primary)]">{a.name}</Link>
                 <div className="text-xs text-[var(--color-subtle)]">{a.image_count} photo(s)</div>
                 <label className="btn btn-outline btn-sm mt-2 cursor-pointer inline-flex">
                   Upload
