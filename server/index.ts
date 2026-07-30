@@ -350,7 +350,7 @@ app.delete("/api/admin/matches/:id", requireAdmin, async (req, res) => {
 // ─── Admin: media ─────────────────────────────────────────────────────────
 
 app.get("/api/admin/media", requireAdmin, async (_req, res) => {
-  const rows = await query(`select * from media_assets order by sort_order, id desc`);
+  const rows = await query(`select * from media_assets where album_id is null order by sort_order, id desc`);
   res.json(
     rows.map((m: Record<string, unknown>) => ({
       ...m,
