@@ -135,7 +135,9 @@ function MatchCard({ m }: { m: Match }) {
 }
 
 function formatDateTime(value: string, time: string | null) {
-  const d = new Date(value.includes("T") ? value : `${value}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return value;
-  return `${d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })}${time ? ` - ${time}` : ""}`;
+  // Parse YYYY-MM-DD directly to avoid timezone shift
+  const parts = value.split("T")[0].split("-");
+  if (parts.length !== 3) return value;
+  const [y, m, d] = parts;
+  return `${m}/${d}/${y}${time ? ` - ${time}` : ""}`;
 }

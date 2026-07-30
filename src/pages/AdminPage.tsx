@@ -335,7 +335,7 @@ function SchedulePanel() {
                 {m.is_matrix && <span className="ml-2 text-[0.6rem] font-semibold uppercase tracking-wider text-[var(--color-accent)] border border-[var(--color-accent)]/30 px-1.5 py-0.5 rounded">Matrix</span>}
               </div>
               <div className="text-xs text-[var(--color-muted)]">
-                {new Date(m.match_date).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })} · {m.kickoff_time || "TBD"} · {m.status} · {m.location}
+                {m.match_date.split("T")[0].split("-").reverse().join("/")} · {m.kickoff_time || "TBD"} · {m.status} · {m.location}
                 {m.status === "final" && m.our_score != null
                   ? ` · ${m.our_score}–${m.their_score}`
                   : ""}
