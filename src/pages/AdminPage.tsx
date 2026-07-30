@@ -437,11 +437,6 @@ function MediaPanel() {
                     active={m.show_in_gallery}
                     onClick={() => void api.patchMedia(m.id, { show_in_gallery: !m.show_in_gallery }).then(load)}
                   />
-                  <Toggle
-                    label={m.published ? "Live" : "Draft"}
-                    active={m.published}
-                    onClick={() => void api.patchMedia(m.id, { published: !m.published }).then(load)}
-                  />
                 </div>
                 <button
                   type="button"
@@ -818,10 +813,7 @@ function SponsorsPanel() {
   }
 
   function edit(s: Sponsor) {
-    setForm({
-      name: s.name, blurb: s.blurb, logo_url: s.logo_url ?? "",
-      website_url: s.website_url ?? "", sort_order: s.sort_order, published: s.published,
-    });
+    setForm({ name: s.name, blurb: s.blurb, logo_url: s.logo_url ?? "", logoDataUrl: undefined, logoMime: undefined, website_url: s.website_url ?? "", sort_order: s.sort_order, published: s.published });
     setEditingId(s.id);
   }
 
@@ -836,7 +828,24 @@ function SponsorsPanel() {
         <input className="field" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         <input className="field" type="number" placeholder="Sort order" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
         <textarea className="field sm:col-span-2" rows={2} placeholder="Blurb" value={form.blurb} onChange={(e) => setForm({ ...form, blurb: e.target.value })} />
-        <input className="field" placeholder="Logo URL (image link)" value={form.logo_url ?? ""} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} />
+        <label className="sm:col-span-2 text-sm flex items-center gap-3">
+          <span>Logo image:</span>
+          <input type="file" accept="image/*" className="text-xs" onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              const r = new FileReader();
+              r.onload = () => resolve(String(r.result));
+              r.onerror = () => reject(new Error("read failed"));
+              r.readAsDataURL(file);
+            });
+            setForm({ ...form, logoDataUrl: dataUrl, logoMime: file.type });
+          }} />
+        </label>
+        {form.logo_url && !form.logoDataUrl && (
+          <p className="text-xs text-[var(--color-muted)] sm:col-span-2">Current logo: {form.logo_url.slice(0, 60)}...</p>
+        )}
+        <input className="field" placeholder="Logo URL (external link)" value={form.logo_url ?? ""} onChange={(e) => setForm({ ...form, logo_url: e.target.value, logoDataUrl: undefined })} />
         <input className="field" placeholder="Website URL" value={form.website_url ?? ""} onChange={(e) => setForm({ ...form, website_url: e.target.value })} />
         <label className="flex items-center gap-2 text-sm sm:col-span-2">
           <input type="checkbox" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} />

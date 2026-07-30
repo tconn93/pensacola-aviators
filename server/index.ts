@@ -501,13 +501,24 @@ app.get("/api/admin/sponsors", requireAdmin, async (_req, res) => {
 
 app.post("/api/admin/sponsors", requireAdmin, async (req, res) => {
   const b = req.body || {};
+  let logoUrl = b.logo_url || null;
+  // Upload logo to R2 if data URL provided
+  if (b.logoDataUrl && typeof b.logoDataUrl === "string" && b.logoDataUrl.startsWith("data:image/") && isR2Configured()) {
+    const base64Data = b.logoDataUrl.split(",")[1] || b.logoDataUrl;
+    const buffer = Buffer.from(base64Data, "base64");
+    const mime = b.logoMime || "image/png";
+    const ext = mime.split("/")[1] || "png";
+    const key = `sponsors/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const r2Key = await import("./storage.js").then((m) => m.uploadToR2(key, buffer, mime));
+    if (r2Key) logoUrl = `/api/media/${r2Key}`;
+  }
   const rows = await query<{ id: number }>(
     `insert into sponsors (name, blurb, logo_url, website_url, sort_order, published)
      values ($1,$2,$3,$4,$5,$6) returning id`,
     [
       String(b.name || "Sponsor").trim(),
       String(b.blurb || "").trim(),
-      b.logo_url || null,
+      logoUrl,
       b.website_url || null,
       Number(b.sort_order ?? 0),
       b.published !== false,
@@ -521,7 +532,19 @@ app.put("/api/admin/sponsors/:id", requireAdmin, async (req, res) => {
   const b = req.body || {};
   const cur = await query(`select * from sponsors where id = $1`, [id]);
   if (!cur[0]) return res.status(404).json({ error: "Not found" });
+  let logoUrl = b.logo_url !== undefined ? b.logo_url : (cur[0] as Record<string, unknown>).logo_url;
+  // Upload logo to R2 if data URL provided
+  if (b.logoDataUrl && typeof b.logoDataUrl === "string" && b.logoDataUrl.startsWith("data:image/") && isR2Configured()) {
+    const base64Data = b.logoDataUrl.split(",")[1] || b.logoDataUrl;
+    const buffer = Buffer.from(base64Data, "base64");
+    const mime = b.logoMime || "image/png";
+    const ext = mime.split("/")[1] || "png";
+    const key = `sponsors/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const r2Key = await import("./storage.js").then((m) => m.uploadToR2(key, buffer, mime));
+    if (r2Key) logoUrl = `/api/media/${r2Key}`;
+  }
   const row = cur[0] as Record<string, unknown>;
+  const newLogo = logoUrl !== undefined ? logoUrl : row.logo_url;
   await query(
     `update sponsors set
       name=$1, blurb=$2, logo_url=$3, website_url=$4,
@@ -530,7 +553,7 @@ app.put("/api/admin/sponsors/:id", requireAdmin, async (req, res) => {
     [
       b.name !== undefined ? b.name : row.name,
       b.blurb !== undefined ? b.blurb : row.blurb,
-      b.logo_url !== undefined ? b.logo_url : row.logo_url,
+      newLogo,
       b.website_url !== undefined ? b.website_url : row.website_url,
       b.sort_order !== undefined ? b.sort_order : row.sort_order,
       b.published !== undefined ? b.published : row.published,

@@ -242,8 +242,10 @@ export type Sponsor = {
 export type SponsorInput = {
   name: string;
   blurb: string;
-  logo_url?: string | null;
-  website_url?: string | null;
+  logo_url: string;
+  logoDataUrl?: string;
+  logoMime?: string;
+  website_url: string;
   sort_order: number;
   published: boolean;
 };

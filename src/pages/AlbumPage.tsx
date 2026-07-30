@@ -170,11 +170,6 @@ export function AlbumPage() {
                       {admin && isAdminImg && (
                         <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1">
                           <ToggleBadge
-                            label="Live"
-                            active={(img as AdminAlbumImage).published}
-                            onClick={(v) => togglePublished(img.id, v)}
-                          />
-                          <ToggleBadge
                             label="Home"
                             active={(img as AdminAlbumImage).show_on_home}
                             onClick={(v) => toggleHome(img.id, v)}
