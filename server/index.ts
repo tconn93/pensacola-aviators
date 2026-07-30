@@ -9,6 +9,41 @@ import dotenv from "dotenv";
 import { pool, query } from "./db.js";
 import { ensureSeedAdmin, loginAdmin, requireAdmin, updateAdminPassword } from "./auth.js";
 
+// ─── In-memory settings cache ────────────────────────────────────────────────
+
+let _settingsCache: Record<string, string> | null = null;
+let _cachePromise: Promise<Record<string, string>> | null = null;
+
+async function loadSettings(): Promise<Record<string, string>> {
+  const rows = await query<{ key: string; value: string }>(
+    `select key, value from club_settings`,
+  );
+  const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  _settingsCache = map;
+  return map;
+}
+
+async function getSettings(): Promise<Record<string, string>> {
+  if (_settingsCache) return _settingsCache;
+  if (_cachePromise) return _cachePromise;
+  _cachePromise = loadSettings().finally(() => { _cachePromise = null; });
+  return _cachePromise;
+}
+
+async function refreshSettings(): Promise<Record<string, string>> {
+  _settingsCache = null;
+  return getSettings();
+}
+
+function jsonArr(map: Record<string, string>, key: string, fallback: string): unknown[] {
+  try { return JSON.parse(map[key] || fallback); } catch { return JSON.parse(fallback); }
+}
+
+function setting(map: Record<string, string>, key: string, fallback: string): string {
+  const v = map[key];
+  return v !== undefined && v !== "" ? v : fallback;
+}
+
 dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -62,10 +97,7 @@ app.get("/api/health", async (_req, res) => {
 
 app.get("/api/site", async (_req, res) => {
   try {
-    const settings = await query<{ key: string; value: string }>(
-      `select key, value from club_settings`,
-    );
-    const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+    const map = await getSettings();
     const media = await query<{
       id: number;
       title: string | null;
@@ -105,10 +137,6 @@ app.get("/api/site", async (_req, res) => {
       [season],
     );
 
-    function jsonArr(key: string, fallback: string): unknown[] {
-      try { return JSON.parse(map[key] || fallback); } catch { return JSON.parse(fallback); }
-    }
-
     res.json({
       presentation: {
         homepage_template: map.homepage_template || "carousel",
@@ -136,10 +164,10 @@ app.get("/api/site", async (_req, res) => {
         duration: map.duration || "2 hours",
         first_session: map.first_session || "Free",
         sponsor_name: map.sponsor_name || "Local partners",
-        stats: jsonArr("stats", '[{"value":"Est.","label":"Gulf Coast club"},{"value":"2×","label":"Weekly training"},{"value":"15s","label":"& Sevens"},{"value":"Open","label":"Always recruiting"}]'),
-        values: jsonArr("values", '[{"title":"Pack","body":"We train together, compete together, and lift each other after the whistle."},{"title":"Grit","body":"Fitness, collisions, and second effort — that\\u0027s the Aviator way."},{"title":"Community","body":"From first-timers to veterans, everyone has a role in the club."}]'),
-        teams: jsonArr("teams", '[{"name":"Aviators","side":"Men\\u0027s","description":"Men\\u0027s club side competing in fifteens seasons and sevens weekends across the Southeast."},{"name":"Aviatrix","side":"Women\\u0027s","description":"Women\\u0027s club side — skill development, competition, and a strong club culture."}]'),
-        join_steps: jsonArr("join_steps", '[{"step":"01","title":"Show up to practice","body":"Tuesdays and Thursdays at 6 PM. No tryout — just introduce yourself."},{"step":"02","title":"Train with the squad","body":"Learn the game, build fitness, and earn your spot in the pack or backline."},{"step":"03","title":"Play for Pensacola","body":"Represent the Aviators or Aviatrix in season games and sevens weekends."}]'),
+        stats: jsonArr(map, "stats", '[{"value":"Est.","label":"Gulf Coast club"},{"value":"2×","label":"Weekly training"},{"value":"15s","label":"& Sevens"},{"value":"Open","label":"Always recruiting"}]'),
+        values: jsonArr(map, "values", '[{"title":"Pack","body":"We train together, compete together, and lift each other after the whistle."},{"title":"Grit","body":"Fitness, collisions, and second effort — that\u0027s the Aviator way."},{"title":"Community","body":"From first-timers to veterans, everyone has a role in the club."}]'),
+        teams: jsonArr(map, "teams", '[{"name":"Aviators","side":"Men\u0027s","description":"Men\u0027s club side competing in fifteens seasons and sevens weekends across the Southeast."},{"name":"Aviatrix","side":"Women\u0027s","description":"Women\u0027s club side — skill development, competition, and a strong club culture."}]'),
+        join_steps: jsonArr(map, "join_steps", '[{"step":"01","title":"Show up to practice","body":"Tuesdays and Thursdays at 6 PM. No tryout — just introduce yourself."},{"step":"02","title":"Train with the squad","body":"Learn the game, build fitness, and earn your spot in the pack or backline."},{"step":"03","title":"Play for Pensacola","body":"Represent the Aviators or Aviatrix in season games and sevens weekends."}]'),
       },
       homeImages: images.filter((i) => i.show_on_home),
       galleryImages: images.filter((i) => i.show_in_gallery),
@@ -501,6 +529,7 @@ app.put("/api/admin/settings", requireAdmin, async (req, res) => {
       [key, value],
     );
   }
+  await refreshSettings();
   res.json({ ok: true });
 });
 

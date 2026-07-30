@@ -11,6 +11,7 @@ import {
   type Sponsor,
   type SponsorInput,
 } from "@/lib/api";
+import { JsonArrayEditor, type JsonArrayField } from "@/components/JsonArrayEditor";
 
 type Tab = "messages" | "schedule" | "media" | "site" | "sponsors" | "admins";
 
@@ -443,59 +444,183 @@ function SitePanel() {
     api.settings().then(setForm).catch(console.error);
   }, []);
 
+  function set<K extends keyof SiteSettings>(k: K, v: SiteSettings[K]) {
+    setForm((f) => (f ? { ...f, [k]: v } : f));
+  }
+
   if (!form) return <p className="text-sm text-[var(--color-muted)]">Loading…</p>;
 
+  async function save() {
+    if (!form) return;
+    await api.saveSettings(form).then(() => {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    });
+  }
+
+  const statFields: JsonArrayField[] = [
+    { key: "value", label: "Value" },
+    { key: "label", label: "Label" },
+  ];
+  const valueFields: JsonArrayField[] = [
+    { key: "title", label: "Title" },
+    { key: "body", label: "Body", type: "textarea" },
+  ];
+  const teamFields: JsonArrayField[] = [
+    { key: "name", label: "Name" },
+    { key: "side", label: "Side (Men's / Women's)" },
+    { key: "description", label: "Description", type: "textarea" },
+  ];
+  const stepFields: JsonArrayField[] = [
+    { key: "step", label: "Step number" },
+    { key: "title", label: "Title" },
+    { key: "body", label: "Body", type: "textarea" },
+  ];
+
   return (
-    <div className="max-w-xl space-y-4">
-      <h1 className="heading-lg !text-3xl mb-2">Homepage layout</h1>
-      <label className="block text-sm">
-        Template
-        <select
-          className="field mt-1"
-          value={form.homepage_template}
-          onChange={(e) => setForm({ ...form, homepage_template: e.target.value })}
-        >
-          <option value="carousel">Carousel</option>
-          <option value="static">Static</option>
-          <option value="split">Split</option>
-          <option value="collage">Collage</option>
-        </select>
-      </label>
-      <label className="block text-sm">
-        Headline
-        <input
-          className="field mt-1"
-          value={form.homepage_headline}
-          onChange={(e) => setForm({ ...form, homepage_headline: e.target.value })}
+    <div className="max-w-2xl space-y-6">
+      <h1 className="heading-lg !text-3xl mb-2">Homepage content</h1>
+      <p className="text-sm text-[var(--color-muted)]">
+        Edit every piece of text that appears on the public site.
+      </p>
+
+      {/* ── Layout ── */}
+      <fieldset className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-3">
+        <legend className="heading-md px-1">Layout</legend>
+        <label className="block text-sm">Template
+          <select className="field mt-1" value={form.homepage_template} onChange={(e) => set("homepage_template", e.target.value)}>
+            <option value="carousel">Carousel</option>
+            <option value="static">Static</option>
+            <option value="split">Split</option>
+            <option value="collage">Collage</option>
+          </select>
+        </label>
+        <label className="block text-sm">Headline
+          <input className="field mt-1" value={form.homepage_headline} onChange={(e) => set("homepage_headline", e.target.value)} />
+        </label>
+        <label className="block text-sm">Subhead
+          <textarea className="field mt-1" rows={3} value={form.homepage_subhead} onChange={(e) => set("homepage_subhead", e.target.value)} />
+        </label>
+        <label className="block text-sm">CTA button label
+          <input className="field mt-1" value={form.homepage_cta_label} onChange={(e) => set("homepage_cta_label", e.target.value)} />
+        </label>
+      </fieldset>
+
+      {/* ── Hero ── */}
+      <fieldset className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-3">
+        <legend className="heading-md px-1">Hero</legend>
+        <label className="block text-sm">Motto
+          <input className="field mt-1" value={form.motto} onChange={(e) => set("motto", e.target.value)} />
+        </label>
+      </fieldset>
+
+      {/* ── Stats ── */}
+      <fieldset className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+        <legend className="heading-md px-1">Stats Bar</legend>
+        <JsonArrayEditor
+          label="Stat items"
+          value={form.stats}
+          onChange={(v) => set("stats", v)}
+          fields={statFields}
         />
-      </label>
-      <label className="block text-sm">
-        Subhead
-        <textarea
-          className="field mt-1"
-          rows={3}
-          value={form.homepage_subhead}
-          onChange={(e) => setForm({ ...form, homepage_subhead: e.target.value })}
-        />
-      </label>
-      <label className="block text-sm">
-        CTA label
-        <input
-          className="field mt-1"
-          value={form.homepage_cta_label}
-          onChange={(e) => setForm({ ...form, homepage_cta_label: e.target.value })}
-        />
-      </label>
-      <button
-        type="button"
-        className="btn btn-primary"
-        onClick={() =>
-          void api.saveSettings(form).then(() => {
-            setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
-          })
-        }
-      >
+      </fieldset>
+
+      {/* ── About ── */}
+      <fieldset className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-3">
+        <legend className="heading-md px-1">About Section</legend>
+        <label className="block text-sm">About body text
+          <textarea className="field mt-1" rows={4} value={form.about_body} onChange={(e) => set("about_body", e.target.value)} />
+        </label>
+        <div className="border-t border-[var(--color-border)] pt-3">
+          <JsonArrayEditor
+            label="Values"
+            value={form.values}
+            onChange={(v) => set("values", v)}
+            fields={valueFields}
+          />
+        </div>
+        <div className="border-t border-[var(--color-border)] pt-3">
+          <JsonArrayEditor
+            label="Teams"
+            value={form.teams}
+            onChange={(v) => set("teams", v)}
+            fields={teamFields}
+          />
+        </div>
+      </fieldset>
+
+      {/* ── Practice ── */}
+      <fieldset className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-3">
+        <legend className="heading-md px-1">Practice &amp; Pitch</legend>
+        <label className="block text-sm">Practice days
+          <input className="field mt-1" value={form.practice_days} onChange={(e) => set("practice_days", e.target.value)} />
+        </label>
+        <label className="block text-sm">Practice time
+          <input className="field mt-1" value={form.practice_time} onChange={(e) => set("practice_time", e.target.value)} />
+        </label>
+        <label className="block text-sm">Practice note
+          <input className="field mt-1" value={form.practice_note} onChange={(e) => set("practice_note", e.target.value)} />
+        </label>
+        <label className="block text-sm">Practice section body
+          <textarea className="field mt-1" rows={3} value={form.practice_body} onChange={(e) => set("practice_body", e.target.value)} />
+        </label>
+        <label className="block text-sm">Pitch address
+          <input className="field mt-1" value={form.pitch_address} onChange={(e) => set("pitch_address", e.target.value)} />
+        </label>
+        <label className="block text-sm">Pitch city
+          <input className="field mt-1" value={form.pitch_city} onChange={(e) => set("pitch_city", e.target.value)} />
+        </label>
+        <label className="block text-sm">Maps URL
+          <input className="field mt-1" value={form.pitch_maps_url} onChange={(e) => set("pitch_maps_url", e.target.value)} />
+        </label>
+        <label className="block text-sm">Duration display
+          <input className="field mt-1" value={form.duration} onChange={(e) => set("duration", e.target.value)} />
+        </label>
+        <label className="block text-sm">First session display
+          <input className="field mt-1" value={form.first_session} onChange={(e) => set("first_session", e.target.value)} />
+        </label>
+      </fieldset>
+
+      {/* ── Socials ── */}
+      <fieldset className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-3">
+        <legend className="heading-md px-1">Social Links</legend>
+        <label className="block text-sm">Instagram URL
+          <input className="field mt-1" value={form.instagram_url} onChange={(e) => set("instagram_url", e.target.value)} />
+        </label>
+        <label className="block text-sm">Facebook URL
+          <input className="field mt-1" value={form.facebook_url} onChange={(e) => set("facebook_url", e.target.value)} />
+        </label>
+      </fieldset>
+
+      {/* ── Join ── */}
+      <fieldset className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-3">
+        <legend className="heading-md px-1">Join Section</legend>
+        <label className="block text-sm">Join body text
+          <textarea className="field mt-1" rows={3} value={form.join_body} onChange={(e) => set("join_body", e.target.value)} />
+        </label>
+        <div className="border-t border-[var(--color-border)] pt-3">
+          <JsonArrayEditor
+            label="Join steps"
+            value={form.join_steps}
+            onChange={(v) => set("join_steps", v)}
+            fields={stepFields}
+          />
+        </div>
+      </fieldset>
+
+      {/* ── Sponsors (legacy) ── */}
+      <fieldset className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-3">
+        <legend className="heading-md px-1">Sponsors (legacy text)</legend>
+        <p className="text-xs text-[var(--color-muted)]">These fields are for the old text-only sponsor display. New sponsors are managed in the Sponsors tab.</p>
+        <label className="block text-sm">Sponsor name
+          <input className="field mt-1" value={form.sponsor_name} onChange={(e) => set("sponsor_name", e.target.value)} />
+        </label>
+        <label className="block text-sm">Sponsor blurb
+          <input className="field mt-1" value={form.sponsor_blurb} onChange={(e) => set("sponsor_blurb", e.target.value)} />
+        </label>
+      </fieldset>
+
+      <button type="button" className="btn btn-primary" onClick={() => void save()}>
         {saved ? "Saved" : "Save settings"}
       </button>
     </div>
