@@ -147,6 +147,7 @@ export type Media = {
   id: number;
   title: string | null;
   alt: string;
+  caption: string | null;
   url: string;
   show_in_gallery: boolean;
   show_on_home: boolean;

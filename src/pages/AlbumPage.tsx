@@ -177,6 +177,20 @@ export function AlbumPage() {
                           />
                         </div>
                       )}
+                      {editMode && isAdminImg && (
+                        <input
+                          className="absolute bottom-14 left-2 right-2 text-xs py-1 px-2 rounded border border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-sm text-[var(--color-fg)] outline-none"
+                          placeholder="Caption"
+                          value={(img as any).caption || ""}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const val = e.target.value || null;
+                            void api.patchMedia(img.id, { caption: val }).then(() => {
+                              setImages((prev) => prev.map((i) => i.id === img.id ? { ...i, caption: val } : i));
+                            });
+                          }}
+                        />
+                      )}
                     </figure>
                   );
                 })}

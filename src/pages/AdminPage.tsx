@@ -459,6 +459,14 @@ function MediaPanel() {
                     onClick={() => void api.patchMedia(m.id, { show_in_gallery: !m.show_in_gallery }).then(load)}
                   />
                 </div>
+                <input
+                  className="field text-xs py-1 h-8"
+                  placeholder="Caption"
+                  value={m.caption || ""}
+                  onChange={(e) => {
+                    void api.patchMedia(m.id, { caption: e.target.value || null }).then(load);
+                  }}
+                />
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm text-[var(--color-primary)]"
