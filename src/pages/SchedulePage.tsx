@@ -12,9 +12,6 @@ export function SchedulePage() {
 
   const matches = site?.matches || [];
   const season = site?.presentation.current_season || "Season";
-  const pDays = site?.club_content?.practice_days || "Tuesdays & Thursdays";
-  const pTime = site?.club_content?.practice_time || "6:00 – 8:00 PM";
-  const pAddr = site?.club_content?.pitch_address || "555 E Nine Mile Rd";
 
   const upcoming = matches.filter(
     (m) => m.status === "scheduled" || m.status === "postponed",
@@ -38,28 +35,6 @@ export function SchedulePage() {
               <p className="mt-2 text-sm text-[var(--color-muted)] font-medium">{season}</p>
             </div>
           </div>
-
-          <article className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-card mb-8 max-w-md">
-            <div className="flex items-center justify-between mb-5">
-              <span className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)]">Practice</span>
-              <span className="rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[0.7rem] text-[var(--color-muted)]">Weekly</span>
-            </div>
-            <h3 className="heading-md mb-4">Open Training</h3>
-            <dl className="space-y-2 text-sm">
-              <div className="flex justify-between gap-3">
-                <dt className="text-[var(--color-subtle)]">When</dt>
-                <dd>{pDays}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-[var(--color-subtle)]">Time</dt>
-                <dd>{pTime}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-[var(--color-subtle)]">Where</dt>
-                <dd>{pAddr}</dd>
-              </div>
-            </dl>
-          </article>
 
           {upcoming.length > 0 && (
             <div className="mb-10">
