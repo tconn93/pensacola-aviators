@@ -8,7 +8,7 @@ import connectPg from "connect-pg-simple";
 import dotenv from "dotenv";
 import { pool, query } from "./db.js";
 import { ensureSeedAdmin, loginAdmin, requireAdmin, updateAdminPassword } from "./auth.js";
-import { isR2Configured, uploadToR2, r2PublicUrl } from "./storage.js";
+import { isR2Configured, uploadToR2, r2PublicUrl, getR2Object } from "./storage.js";
 
 // ─── In-memory settings cache ────────────────────────────────────────────────
 
@@ -122,7 +122,11 @@ app.get("/api/site", async (_req, res) => {
       title: m.title,
       alt: m.alt,
       caption: m.caption,
-      url: m.source_type === "path" && m.path ? m.path : m.data_url || m.path || "",
+      url: m.source_type === "r2" && m.path
+        ? r2PublicUrl(m.path)
+        : m.source_type === "path" && m.path
+          ? m.path
+          : m.data_url || m.path || "",
       show_in_gallery: m.show_in_gallery,
       show_on_home: m.show_on_home,
       sort_order: m.sort_order,
@@ -388,18 +392,18 @@ app.post("/api/admin/media", requireAdmin, async (req, res) => {
     const base64Data = dataUrl.split(",")[1] || dataUrl;
     const buffer = Buffer.from(base64Data, "base64");
     const ext = mime?.split("/")[1] || "jpg";
-    const key = `media/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const url = await uploadToR2(key, buffer, mime || "image/jpeg");
-    if (!url) return res.status(500).json({ error: "R2 upload failed" });
+    const key = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const r2Key = await uploadToR2(key, buffer, mime || "image/jpeg");
+    if (!r2Key) return res.status(500).json({ error: "R2 upload failed" });
 
     const rows = await query<{ id: number }>(
       `insert into media_assets (
         title, alt, caption, source_type, path, mime_type,
         show_in_gallery, show_on_home, published, sort_order, uploaded_by
       ) values ($1,$2,$3,'r2',$4,$5,$6,$7,$8,$9,$10) returning id`,
-      [title, alt, caption, url, mime, showGallery, showHome, published, sort, uploadedBy],
+      [title, alt, caption, r2Key, mime, showGallery, showHome, published, sort, uploadedBy],
     );
-    res.json({ ok: true, id: rows[0]?.id, url });
+    res.json({ ok: true, id: rows[0]?.id, url: r2PublicUrl(r2Key) });
   } else {
     // Store as base64 in DB (existing behavior)
     const rows = await query<{ id: number }>(
@@ -441,6 +445,47 @@ app.patch("/api/admin/media/:id", requireAdmin, async (req, res) => {
 app.delete("/api/admin/media/:id", requireAdmin, async (req, res) => {
   await query(`delete from media_assets where id = $1`, [Number(req.params.id)]);
   res.json({ ok: true });
+});
+
+// ─── Media proxy (serves R2 images through the API) ─────────────────────
+
+app.get("/api/media/*", async (req, res) => {
+  const key = req.path.replace("/api/media/", "");
+  if (!key) return res.status(400).json({ error: "No key" });
+  const obj = await getR2Object(key);
+  if (!obj || !obj.Body) return res.status(404).json({ error: "Not found" });
+  const contentType = obj.ContentType || "image/jpeg";
+  res.setHeader("Content-Type", contentType);
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  // Collect all bytes from the R2 response
+  try {
+    const body = obj.Body as any;
+    const chunks: Buffer[] = [];
+    if (typeof body?.pipe === "function") {
+      // Node.js Readable stream
+      await new Promise<void>((resolve, reject) => {
+        body.on("data", (c: Buffer) => chunks.push(c));
+        body.on("end", resolve);
+        body.on("error", reject);
+      });
+    } else if (body?.getReader) {
+      // Web ReadableStream
+      const reader = body.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(Buffer.from(value));
+      }
+    } else {
+      return res.status(500).json({ error: "Unsupported body type" });
+    }
+    const buf = Buffer.concat(chunks);
+    res.setHeader("Content-Length", buf.length);
+    res.end(buf);
+  } catch (err) {
+    console.error("[media-proxy] error:", err);
+    if (!res.headersSent) res.status(500).end();
+  }
 });
 
 // ─── Admin: sponsors ────────────────────────────────────────────────────

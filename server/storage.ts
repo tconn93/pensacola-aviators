@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -46,7 +46,7 @@ export async function uploadToR2(
         ContentType: contentType,
       }),
     );
-    return `${publicUrl}/${key}`;
+    return key;
   } catch (err) {
     console.error("[r2] upload failed:", err);
     return null;
@@ -54,5 +54,19 @@ export async function uploadToR2(
 }
 
 export function r2PublicUrl(key: string): string {
-  return `${publicUrl}/${key}`;
+  return `/api/media/${key}`;
+}
+
+export async function getR2Object(key: string) {
+  const client = getClient();
+  if (!client) return null;
+  try {
+    const response = await client.send(
+      new GetObjectCommand({ Bucket: bucket, Key: key }),
+    );
+    return response;
+  } catch (err) {
+    console.error("[r2] get failed:", err);
+    return null;
+  }
 }
