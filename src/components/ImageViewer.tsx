@@ -60,7 +60,7 @@ export function ImageViewer({
       {hasPrev && (
         <button
           type="button"
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 btn btn-ghost p-2 bg-[var(--color-bg)]/60 backdrop-blur-sm"
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 btn btn-ghost p-2"
           onClick={(e) => { e.stopPropagation(); onPrev(); }}
           aria-label="Previous"
         >
@@ -87,7 +87,7 @@ export function ImageViewer({
       {hasNext && (
         <button
           type="button"
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 btn btn-ghost p-2 bg-[var(--color-bg)]/60 backdrop-blur-sm"
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 btn btn-ghost p-2"
           onClick={(e) => { e.stopPropagation(); onNext(); }}
           aria-label="Next"
         >
