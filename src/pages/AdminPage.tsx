@@ -195,6 +195,7 @@ function MessagesPanel() {
 }
 
 function SchedulePanel() {
+  const [showForm, setShowForm] = useState(false);
   const [season, setSeason] = useState("Fall 2026");
   const [matches, setMatches] = useState<Match[]>([]);
   const [form, setForm] = useState({
@@ -260,10 +261,14 @@ function SchedulePanel() {
           Save season
         </button>
       </div>
-      <form onSubmit={addMatch} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 grid gap-3 sm:grid-cols-2">
-        <h2 className="heading-md sm:col-span-2">Add match</h2>
-        <input className="field" placeholder="Opponent" value={form.opponent} onChange={(e) => setForm({ ...form, opponent: e.target.value })} required />
-        <input className="field" type="date" value={form.match_date} onChange={(e) => setForm({ ...form, match_date: e.target.value })} required />
+      {showForm ? (
+        <form onSubmit={addMatch} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2 flex items-center justify-between">
+            <h2 className="heading-md">Add match</h2>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowForm(false)}>Cancel</button>
+          </div>
+          <input className="field" placeholder="Opponent" value={form.opponent} onChange={(e) => setForm({ ...form, opponent: e.target.value })} required />
+          <input className="field" type="date" value={form.match_date} onChange={(e) => setForm({ ...form, match_date: e.target.value })} required />
         <select className="field" value={form.team} onChange={(e) => setForm({ ...form, team: e.target.value })}>
           <option value="aviators">Aviators</option>
           <option value="aviatrix">Aviatrix</option>
@@ -285,6 +290,9 @@ function SchedulePanel() {
         <input className="field" placeholder="Them score" value={form.their_score} onChange={(e) => setForm({ ...form, their_score: e.target.value })} />
         <button type="submit" className="btn btn-primary sm:col-span-2">Add match</button>
       </form>
+      ) : (
+        <button type="button" className="btn btn-outline" onClick={() => setShowForm(true)}>Add match</button>
+      )}
       <ul className="divide-y divide-[var(--color-border)] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
         {matches.map((m) => (
           <li key={m.id} className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
