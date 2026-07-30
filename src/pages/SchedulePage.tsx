@@ -129,7 +129,7 @@ function MatchCard({ m }: { m: Match }) {
       <p className="text-sm text-[var(--color-muted)]">
         {formatDateTime(m.match_date, m.kickoff_time)}
       </p>
-      {m.venue && m.location !== "away" && <p className="text-xs text-[var(--color-subtle)] mt-1">{m.venue}</p>}
+      {m.venue && m.location === "home" && <p className="text-xs text-[var(--color-subtle)] mt-1">{m.venue}</p>}
     </article>
   );
 }
