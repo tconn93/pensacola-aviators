@@ -8,6 +8,7 @@ import connectPg from "connect-pg-simple";
 import dotenv from "dotenv";
 import { pool, query } from "./db.js";
 import { ensureSeedAdmin, loginAdmin, requireAdmin, updateAdminPassword } from "./auth.js";
+import { isR2Configured, uploadToR2, r2PublicUrl } from "./storage.js";
 
 // ─── In-memory settings cache ────────────────────────────────────────────────
 
@@ -352,7 +353,9 @@ app.get("/api/admin/media", requireAdmin, async (_req, res) => {
       url:
         m.source_type === "path" && m.path
           ? m.path
-          : m.data_url || m.path || "",
+          : m.source_type === "r2" && m.path
+            ? m.path
+            : m.data_url || m.path || "",
     })),
   );
 });
@@ -368,25 +371,47 @@ app.post("/api/admin/media", requireAdmin, async (req, res) => {
     `select max(sort_order) as m from media_assets`,
   );
   const sort = (max[0]?.m ?? 0) + 10;
-  const rows = await query<{ id: number }>(
-    `insert into media_assets (
-      title, alt, caption, source_type, data_url, mime_type,
-      show_in_gallery, show_on_home, published, sort_order, uploaded_by
-    ) values ($1,$2,$3,'upload',$4,$5,$6,$7,$8,$9,$10) returning id`,
-    [
-      b.title || null,
-      b.alt || "Club photo",
-      b.caption || null,
-      dataUrl,
-      b.mime_type || null,
-      b.show_in_gallery !== false,
-      Boolean(b.show_on_home),
-      b.published !== false,
-      sort,
-      req.session.admin?.email || null,
-    ],
-  );
-  res.json({ ok: true, id: rows[0]?.id });
+  const title = b.title || null;
+  const alt = b.alt || "Club photo";
+  const caption = b.caption || null;
+  const mime = b.mime_type || null;
+  const showGallery = b.show_in_gallery !== false;
+  const showHome = Boolean(b.show_on_home);
+  const published = b.published !== false;
+  const uploadedBy = req.session.admin?.email || null;
+
+  // Check if R2 storage is configured
+  const map = await getSettings();
+  const useR2 = map.storage_backend === "r2" && isR2Configured();
+
+  if (useR2) {
+    // Upload to R2
+    const base64Data = dataUrl.split(",")[1] || dataUrl;
+    const buffer = Buffer.from(base64Data, "base64");
+    const ext = mime?.split("/")[1] || "jpg";
+    const key = `media/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const url = await uploadToR2(key, buffer, mime || "image/jpeg");
+    if (!url) return res.status(500).json({ error: "R2 upload failed" });
+
+    const rows = await query<{ id: number }>(
+      `insert into media_assets (
+        title, alt, caption, source_type, path, mime_type,
+        show_in_gallery, show_on_home, published, sort_order, uploaded_by
+      ) values ($1,$2,$3,'r2',$4,$5,$6,$7,$8,$9,$10) returning id`,
+      [title, alt, caption, url, mime, showGallery, showHome, published, sort, uploadedBy],
+    );
+    res.json({ ok: true, id: rows[0]?.id, url });
+  } else {
+    // Store as base64 in DB (existing behavior)
+    const rows = await query<{ id: number }>(
+      `insert into media_assets (
+        title, alt, caption, source_type, data_url, mime_type,
+        show_in_gallery, show_on_home, published, sort_order, uploaded_by
+      ) values ($1,$2,$3,'upload',$4,$5,$6,$7,$8,$9,$10) returning id`,
+      [title, alt, caption, dataUrl, mime, showGallery, showHome, published, sort, uploadedBy],
+    );
+    res.json({ ok: true, id: rows[0]?.id });
+  }
 });
 
 app.patch("/api/admin/media/:id", requireAdmin, async (req, res) => {
@@ -506,6 +531,7 @@ app.get("/api/admin/settings", requireAdmin, async (_req, res) => {
     sponsor_name: map.sponsor_name || "Local partners",
     club_name: map.club_name || "Pensacola Aviators",
     footer_tagline: map.footer_tagline || "Club rugby on the Gulf Coast",
+    storage_backend: map.storage_backend || "db",
     stats: map.stats || '[{"value":"Est.","label":"Gulf Coast club"},{"value":"2×","label":"Weekly training"},{"value":"15s","label":"& Sevens"},{"value":"Open","label":"Always recruiting"}]',
     values: map.values || '[{"title":"Pack","body":"We train together, compete together, and lift each other after the whistle."},{"title":"Grit","body":"Fitness, collisions, and second effort — that\'s the Aviator way."},{"title":"Community","body":"From first-timers to veterans, everyone has a role in the club."}]',
     teams: map.teams || '[{"name":"Aviators","side":"Men\'s","description":"Men\'s club side competing in fifteens seasons and sevens weekends across the Southeast."},{"name":"Aviatrix","side":"Women\'s","description":"Women\'s club side — skill development, competition, and a strong club culture."}]',
@@ -524,6 +550,7 @@ app.put("/api/admin/settings", requireAdmin, async (req, res) => {
     "sponsor_blurb", "sponsor_name",
     "duration", "first_session",
     "club_name", "footer_tagline",
+    "storage_backend",
     "stats", "values", "teams", "join_steps",
   ];
   const pairs: [string, string][] = keys.map((k) => [k, String(b[k] ?? "")]);

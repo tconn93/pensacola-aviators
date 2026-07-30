@@ -632,6 +632,21 @@ function SitePanel() {
         </label>
       </fieldset>
 
+      {/* ── Storage ── */}
+      <fieldset className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-3">
+        <legend className="heading-md px-1">Image Storage</legend>
+        <p className="text-xs text-[var(--color-muted)]">New image uploads will be stored using the selected backend.</p>
+        <label className="block text-sm">Storage backend
+          <select className="field mt-1" value={form.storage_backend} onChange={(e) => set("storage_backend", e.target.value)}>
+            <option value="db">Database (base64)</option>
+            <option value="r2">Cloudflare R2</option>
+          </select>
+        </label>
+        {form.storage_backend === "r2" && (
+          <p className="text-xs text-green-600">R2 is configured and active for new uploads.</p>
+        )}
+      </fieldset>
+
       <button type="button" className="btn btn-primary" onClick={() => void save()}>
         {saved ? "Saved" : "Save settings"}
       </button>
