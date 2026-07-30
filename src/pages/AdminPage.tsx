@@ -862,6 +862,7 @@ function AdminsPanel({ currentEmail }: { currentEmail: string }) {
 }
 
 function SponsorsPanel() {
+  const [showForm, setShowForm] = useState(false);
   const [items, setItems] = useState<Sponsor[]>([]);
   const [form, setForm] = useState<SponsorInput>({
     name: "", blurb: "", logo_url: "", website_url: "", sort_order: 0, published: true,
@@ -883,12 +884,14 @@ function SponsorsPanel() {
     }
     setForm({ name: "", blurb: "", logo_url: "", website_url: "", sort_order: 0, published: true });
     setEditingId(null);
+    setShowForm(false);
     await load();
   }
 
   function edit(s: Sponsor) {
     setForm({ name: s.name, blurb: s.blurb, logo_url: s.logo_url ?? "", logoDataUrl: undefined, logoMime: undefined, website_url: s.website_url ?? "", sort_order: s.sort_order, published: s.published });
     setEditingId(s.id);
+    setShowForm(true);
   }
 
   return (
@@ -897,8 +900,12 @@ function SponsorsPanel() {
         <h1 className="heading-lg !text-3xl mb-2">Sponsors</h1>
         <p className="text-sm text-[var(--color-muted)]">Manage sponsor logos, blurbs, and website links.</p>
       </div>
-      <form onSubmit={save} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 grid gap-3 sm:grid-cols-2">
-        <h2 className="heading-md sm:col-span-2">{editingId ? "Edit sponsor" : "Add sponsor"}</h2>
+      {showForm ? (
+        <form onSubmit={save} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2 flex items-center justify-between">
+            <h2 className="heading-md">{editingId ? "Edit sponsor" : "Add sponsor"}</h2>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancel</button>
+          </div>
         <input className="field" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         <input className="field" type="number" placeholder="Sort order" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
         <textarea className="field sm:col-span-2" rows={2} placeholder="Blurb" value={form.blurb} onChange={(e) => setForm({ ...form, blurb: e.target.value })} />
@@ -935,6 +942,9 @@ function SponsorsPanel() {
           )}
         </div>
       </form>
+      ) : (
+        <button type="button" className="btn btn-outline" onClick={() => setShowForm(true)}>Add sponsor</button>
+      )}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((s) => (
           <article key={s.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-card">
