@@ -3,11 +3,12 @@ import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 
 const links = [
-  { href: "#about", label: "About" },
-  { href: "#practice", label: "Practice" },
-  { href: "#schedule", label: "Schedule" },
-  { href: "#gallery", label: "Gallery" },
-  { href: "#join", label: "Join" },
+  { href: "/", label: "Home", page: true },
+  { href: "/#about", label: "About", page: false },
+  { href: "/#practice", label: "Practice", page: false },
+  { href: "/schedule", label: "Schedule", page: true },
+  { href: "/gallery", label: "Gallery", page: true },
+  { href: "/#join", label: "Join", page: false },
 ];
 
 export function SiteHeader() {
@@ -20,11 +21,17 @@ export function SiteHeader() {
           Pensacola <span className="text-[var(--color-primary)]">Aviators</span>
         </a>
         <nav className="hidden md:flex items-center gap-6 text-sm text-[var(--color-muted)]">
-          {links.map((l) => (
-            <a key={l.href} href={l.href} className="hover:text-[var(--color-fg)] transition-colors">
-              {l.label}
-            </a>
-          ))}
+          {links.map((l) =>
+            l.page ? (
+              <Link key={l.href} to={l.href} className="hover:text-[var(--color-fg)] transition-colors">
+                {l.label}
+              </Link>
+            ) : (
+              <a key={l.href} href={l.href} className="hover:text-[var(--color-fg)] transition-colors">
+                {l.label}
+              </a>
+            )
+          )}
           <Link to="/login" className="btn btn-outline btn-sm">
             Club staff
           </Link>
@@ -40,16 +47,17 @@ export function SiteHeader() {
       </div>
       {open && (
         <div className="md:hidden border-t border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-5 py-4 space-y-3">
-          {links.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="block text-sm text-[var(--color-muted)]"
-              onClick={() => setOpen(false)}
-            >
-              {l.label}
-            </a>
-          ))}
+          {links.map((l) =>
+            l.page ? (
+              <Link key={l.href} to={l.href} className="block text-sm text-[var(--color-muted)]" onClick={() => setOpen(false)}>
+                {l.label}
+              </Link>
+            ) : (
+              <a key={l.href} href={l.href} className="block text-sm text-[var(--color-muted)]" onClick={() => setOpen(false)}>
+                {l.label}
+              </a>
+            )
+          )}
           <Link to="/login" className="btn btn-outline btn-sm" onClick={() => setOpen(false)}>
             Club staff login
           </Link>

@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowRight,
   CalendarDays,
@@ -23,11 +24,47 @@ export function HomePage() {
       <StatsBar site={site} />
       <About site={site} />
       <Practice site={site} />
-      <Schedule site={site} />
-      <Gallery site={site} />
+      <CallToAction />
       <Sponsors site={site} />
       <Join site={site} />
     </main>
+  );
+}
+
+function CallToAction() {
+  return (
+    <section className="section-pad">
+      <div className="container-x">
+        <div className="grid gap-6 md:grid-cols-2 max-w-3xl mx-auto">
+          <Link
+            to="/schedule"
+            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-card text-center hover:bg-[var(--color-bg-elevated)] transition-colors group"
+          >
+            <CalendarDays size={32} className="mx-auto mb-4 text-[var(--color-primary)]" />
+            <h2 className="heading-md mb-2">Schedule &amp; results</h2>
+            <p className="text-sm text-[var(--color-muted)] mb-4">
+              View upcoming fixtures and past match results.
+            </p>
+            <span className="text-sm font-medium text-[var(--color-primary)] group-hover:underline">
+              Full schedule →
+            </span>
+          </Link>
+          <Link
+            to="/gallery"
+            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-card text-center hover:bg-[var(--color-bg-elevated)] transition-colors group"
+          >
+            <svg className="mx-auto mb-4 text-[var(--color-primary)]" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <h2 className="heading-md mb-2">Club gallery</h2>
+            <p className="text-sm text-[var(--color-muted)] mb-4">
+              Browse photos from practices, matches, and club events.
+            </p>
+            <span className="text-sm font-medium text-[var(--color-primary)] group-hover:underline">
+              View gallery →
+            </span>
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }
 
