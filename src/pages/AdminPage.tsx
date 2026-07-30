@@ -211,6 +211,7 @@ function SchedulePanel() {
     their_score: "",
     notes: "",
     published: true,
+    is_matrix: false,
   });
 
   const load = useCallback(async () => {
@@ -288,6 +289,10 @@ function SchedulePanel() {
         <input className="field" placeholder="Kickoff" value={form.kickoff_time} onChange={(e) => setForm({ ...form, kickoff_time: e.target.value })} />
         <input className="field" placeholder="Us score" value={form.our_score} onChange={(e) => setForm({ ...form, our_score: e.target.value })} />
         <input className="field" placeholder="Them score" value={form.their_score} onChange={(e) => setForm({ ...form, their_score: e.target.value })} />
+        <label className="sm:col-span-2 flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={form.is_matrix} onChange={(e) => setForm({ ...form, is_matrix: e.target.checked })} />
+          Matrix match
+        </label>
         <button type="submit" className="btn btn-primary sm:col-span-2">Add match</button>
       </form>
       ) : (
@@ -297,9 +302,11 @@ function SchedulePanel() {
         {matches.map((m) => (
           <li key={m.id} className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
             <div>
-              <div className="font-medium text-sm">vs {m.opponent}</div>
+              <div className="font-medium text-sm">vs {m.opponent}
+                {m.is_matrix && <span className="ml-2 text-[0.6rem] font-semibold uppercase tracking-wider text-[var(--color-accent)] border border-[var(--color-accent)]/30 px-1.5 py-0.5 rounded">Matrix</span>}
+              </div>
               <div className="text-xs text-[var(--color-muted)]">
-                {m.match_date} · {m.status} · {m.location}
+                {new Date(m.match_date).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })} · {m.kickoff_time || "TBD"} · {m.status} · {m.location}
                 {m.status === "final" && m.our_score != null
                   ? ` · ${m.our_score}–${m.their_score}`
                   : ""}

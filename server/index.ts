@@ -270,7 +270,7 @@ app.get("/api/admin/matches", requireAdmin, async (_req, res) => {
     `select value from club_settings where key = 'current_season'`,
   );
   const matches = await query(
-    `select * from matches order by match_date desc, id desc`,
+    `select * from matches order by match_date asc, id asc`,
   );
   res.json({
     currentSeason: seasonRows[0]?.value || "Fall 2026",
@@ -294,8 +294,8 @@ app.post("/api/admin/matches", requireAdmin, async (req, res) => {
   const rows = await query<{ id: number }>(
     `insert into matches (
       season, team, opponent, match_date, kickoff_time, location, venue,
-      status, our_score, their_score, notes, published
-    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) returning id`,
+      status, our_score, their_score, notes, published, is_matrix
+    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) returning id`,
     [
       String(b.season || "").trim(),
       b.team || "aviators",
@@ -309,6 +309,7 @@ app.post("/api/admin/matches", requireAdmin, async (req, res) => {
       b.their_score ?? null,
       b.notes || null,
       b.published !== false,
+      b.is_matrix === true,
     ],
   );
   res.json({ ok: true, id: rows[0]?.id });
@@ -321,8 +322,8 @@ app.put("/api/admin/matches/:id", requireAdmin, async (req, res) => {
     `update matches set
       season=$1, team=$2, opponent=$3, match_date=$4, kickoff_time=$5,
       location=$6, venue=$7, status=$8, our_score=$9, their_score=$10,
-      notes=$11, published=$12, updated_at=now()
-     where id=$13`,
+      notes=$11, published=$12, is_matrix=$13, updated_at=now()
+     where id=$14`,
     [
       b.season,
       b.team,
@@ -336,6 +337,7 @@ app.put("/api/admin/matches/:id", requireAdmin, async (req, res) => {
       b.their_score ?? null,
       b.notes || null,
       b.published !== false,
+      b.is_matrix === true,
       id,
     ],
   );

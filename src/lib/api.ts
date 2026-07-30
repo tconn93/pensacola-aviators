@@ -141,6 +141,7 @@ export type Match = {
   their_score: number | null;
   notes: string | null;
   published: boolean;
+  is_matrix: boolean;
 };
 
 export type Media = {

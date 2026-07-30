@@ -87,9 +87,11 @@ export function SchedulePage() {
                           {outcome}
                         </span>
                         <div className="min-w-0">
-                          <div className="font-medium text-sm truncate">vs {m.opponent}</div>
+                          <div className="font-medium text-sm truncate">vs {m.opponent}
+                            {m.is_matrix && <span className="ml-1 text-[0.55rem] font-semibold uppercase tracking-wider text-[var(--color-accent)]">Matrix</span>}
+                          </div>
                           <div className="text-xs text-[var(--color-muted)]">
-                            {formatDate(m.match_date)} · {m.location}
+                            {formatDateTime(m.match_date, m.kickoff_time)} · {m.location}
                           </div>
                         </div>
                       </div>
@@ -121,18 +123,19 @@ function MatchCard({ m }: { m: Match }) {
         <span className="text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[var(--color-primary)]">{m.team}</span>
         <span className="text-[0.7rem] uppercase tracking-wide text-[var(--color-muted)]">{m.location}</span>
       </div>
-      <h4 className="font-[family-name:var(--font-display)] text-xl tracking-wide uppercase mb-2">vs {m.opponent}</h4>
+      <h4 className="font-[family-name:var(--font-display)] text-xl tracking-wide uppercase mb-2">vs {m.opponent}
+        {m.is_matrix && <span className="ml-2 text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--color-accent)] align-middle">Matrix</span>}
+      </h4>
       <p className="text-sm text-[var(--color-muted)]">
-        {formatDate(m.match_date)}
-        {m.kickoff_time ? ` · ${m.kickoff_time}` : ""}
+        {formatDateTime(m.match_date, m.kickoff_time)}
       </p>
       {m.venue && <p className="text-xs text-[var(--color-subtle)] mt-1">{m.venue}</p>}
     </article>
   );
 }
 
-function formatDate(value: string) {
+function formatDateTime(value: string, time: string | null) {
   const d = new Date(value.includes("T") ? value : `${value}T12:00:00`);
   if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  return `${d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })}${time ? ` - ${time}` : ""}`;
 }
