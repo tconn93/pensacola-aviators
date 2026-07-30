@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import React, { FormEvent, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   api,
@@ -8,20 +8,26 @@ import {
   type Match,
   type Media,
   type SiteSettings,
+  type Sponsor,
+  type SponsorInput,
 } from "@/lib/api";
 
-type Tab = "messages" | "schedule" | "media" | "site" | "admins";
+type Tab = "messages" | "schedule" | "media" | "site" | "sponsors" | "admins";
 
 export function AdminPage() {
   const navigate = useNavigate();
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [checking, setChecking] = useState(true);
   const [tab, setTab] = useState<Tab>("messages");
+  const [forcePasswordOpen, setForcePasswordOpen] = useState(false);
 
   useEffect(() => {
     api
       .me()
-      .then((r) => setAdmin(r.admin))
+      .then((r) => {
+        setAdmin(r.admin);
+        if (r.admin.needsPasswordChange) setForcePasswordOpen(true);
+      })
       .catch(() => navigate("/login"))
       .finally(() => setChecking(false));
   }, [navigate]);
@@ -37,6 +43,15 @@ export function AdminPage() {
 
   return (
     <div className="min-h-dvh bg-[var(--color-bg)]">
+      {forcePasswordOpen && (
+        <ForcePasswordChange
+          admin={admin}
+          onDone={() => {
+            setForcePasswordOpen(false);
+            setAdmin((a) => a ? { ...a, needsPasswordChange: false } : a);
+          }}
+        />
+      )}
       <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)] sticky top-0 z-20">
         <div className="container-x flex h-16 items-center justify-between gap-4">
           <div>
@@ -69,6 +84,7 @@ export function AdminPage() {
                 ["schedule", "Schedule"],
                 ["media", "Media"],
                 ["site", "Homepage"],
+                ["sponsors", "Sponsors"],
                 ["admins", "Admins"],
               ] as const
             ).map(([key, label]) => (
@@ -93,6 +109,7 @@ export function AdminPage() {
         {tab === "schedule" && <SchedulePanel />}
         {tab === "media" && <MediaPanel />}
         {tab === "site" && <SitePanel />}
+        {tab === "sponsors" && <SponsorsPanel />}
         {tab === "admins" && <AdminsPanel currentEmail={admin.email} />}
       </div>
     </div>
@@ -489,7 +506,10 @@ function AdminsPanel({ currentEmail }: { currentEmail: string }) {
   const [admins, setAdmins] = useState<AdminRow[]>([]);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [password, setPassword] = useState("changeme");
+  const [password, setPassword] = useState("aviators");
+  const [changePwId, setChangePwId] = useState(-1);
+  const [changePwVal, setChangePwVal] = useState("");
+  const [pwMsg, setPwMsg] = useState("");
 
   const load = useCallback(async () => {
     setAdmins(await api.admins());
@@ -507,6 +527,15 @@ function AdminsPanel({ currentEmail }: { currentEmail: string }) {
     await load();
   }
 
+  async function onChangePw(id: number) {
+    if (changePwVal.length < 6) { setPwMsg("Min 6 characters"); return; }
+    await api.updatePassword(id, changePwVal);
+    setChangePwId(-1);
+    setChangePwVal("");
+    setPwMsg("Password updated");
+    setTimeout(() => setPwMsg(""), 3000);
+  }
+
   return (
     <div className="max-w-xl space-y-6">
       <div>
@@ -521,31 +550,193 @@ function AdminsPanel({ currentEmail }: { currentEmail: string }) {
         <input className="field" type="password" placeholder="Temp password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         <button type="submit" className="btn btn-primary">Add admin</button>
       </form>
+      {pwMsg && <p className="text-sm text-[var(--color-primary)]">{pwMsg}</p>}
       <ul className="divide-y divide-[var(--color-border)] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
         {admins.map((a) => (
-          <li key={a.id} className="px-4 py-3 flex items-center justify-between gap-3">
-            <div>
-              <div className="font-medium text-sm">
-                {a.name || a.email}
-                {a.email === currentEmail && (
-                  <span className="ml-2 text-xs text-[var(--color-primary)]">(you)</span>
-                )}
+          <li key={a.id} className="px-4 py-3">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div>
+                <div className="font-medium text-sm">
+                  {a.name || a.email}
+                  {a.email === currentEmail && (
+                    <span className="ml-2 text-xs text-[var(--color-primary)]">(you)</span>
+                  )}
+                </div>
+                <div className="text-xs text-[var(--color-muted)]">{a.email} &middot; {a.role}</div>
               </div>
-              <div className="text-xs text-[var(--color-muted)]">{a.email} · {a.role}</div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setChangePwId(changePwId === a.id ? -1 : a.id)}
+                >
+                  {changePwId === a.id ? "Cancel" : "Change password"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm text-[var(--color-primary)]"
+                  disabled={admins.length <= 1}
+                  onClick={() => {
+                    if (confirm("Remove " + a.email + "?")) void api.removeAdmin(a.id).then(load);
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm text-[var(--color-primary)]"
-              disabled={admins.length <= 1}
-              onClick={() => {
-                if (confirm(`Remove ${a.email}?`)) void api.removeAdmin(a.id).then(load);
-              }}
-            >
-              Remove
-            </button>
+            {changePwId === a.id && (
+              <div className="flex gap-2 items-center pt-2 border-t border-[var(--color-border)]">
+                <input
+                  className="field flex-1"
+                  type="password"
+                  placeholder="New password (min 6 chars)"
+                  value={changePwVal}
+                  onChange={(e) => setChangePwVal(e.target.value)}
+                  autoFocus
+                />
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => void onChangePw(a.id)}>
+                  Save
+                </button>
+              </div>
+            )}
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function SponsorsPanel() {
+  const [items, setItems] = useState<Sponsor[]>([]);
+  const [form, setForm] = useState<SponsorInput>({
+    name: "", blurb: "", logo_url: "", website_url: "", sort_order: 0, published: true,
+  });
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const load = useCallback(async () => {
+    setItems(await api.sponsors());
+  }, []);
+
+  useEffect(() => { void load().catch(console.error); }, [load]);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    if (editingId) {
+      await api.updateSponsor(editingId, form);
+    } else {
+      await api.createSponsor(form);
+    }
+    setForm({ name: "", blurb: "", logo_url: "", website_url: "", sort_order: 0, published: true });
+    setEditingId(null);
+    await load();
+  }
+
+  function edit(s: Sponsor) {
+    setForm({
+      name: s.name, blurb: s.blurb, logo_url: s.logo_url ?? "",
+      website_url: s.website_url ?? "", sort_order: s.sort_order, published: s.published,
+    });
+    setEditingId(s.id);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="heading-lg !text-3xl mb-2">Sponsors</h1>
+        <p className="text-sm text-[var(--color-muted)]">Manage sponsor logos, blurbs, and website links.</p>
+      </div>
+      <form onSubmit={save} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 grid gap-3 sm:grid-cols-2">
+        <h2 className="heading-md sm:col-span-2">{editingId ? "Edit sponsor" : "Add sponsor"}</h2>
+        <input className="field" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        <input className="field" type="number" placeholder="Sort order" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
+        <textarea className="field sm:col-span-2" rows={2} placeholder="Blurb" value={form.blurb} onChange={(e) => setForm({ ...form, blurb: e.target.value })} />
+        <input className="field" placeholder="Logo URL (image link)" value={form.logo_url ?? ""} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} />
+        <input className="field" placeholder="Website URL" value={form.website_url ?? ""} onChange={(e) => setForm({ ...form, website_url: e.target.value })} />
+        <label className="flex items-center gap-2 text-sm sm:col-span-2">
+          <input type="checkbox" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} />
+          Published
+        </label>
+        <div className="sm:col-span-2 flex gap-2">
+          <button type="submit" className="btn btn-primary">{editingId ? "Update" : "Add sponsor"}</button>
+          {editingId && (
+            <button type="button" className="btn btn-ghost" onClick={() => {
+              setForm({ name: "", blurb: "", logo_url: "", website_url: "", sort_order: 0, published: true });
+              setEditingId(null);
+            }}>Cancel</button>
+          )}
+        </div>
+      </form>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((s) => (
+          <article key={s.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-card">
+            {s.logo_url && (
+              <div className="aspect-[3/1] bg-[var(--color-bg-elevated)] rounded-xl mb-3 flex items-center justify-center p-3">
+                <img src={s.logo_url} alt={s.name} className="max-h-full max-w-full object-contain" />
+              </div>
+            )}
+            <h3 className="font-medium text-sm">{s.name}</h3>
+            {s.blurb && <p className="text-xs text-[var(--color-muted)] mt-1">{s.blurb}</p>}
+            {s.website_url && (
+              <a href={s.website_url} target="_blank" rel="noreferrer" className="text-xs text-[var(--color-primary)] block mt-1 truncate">{s.website_url}</a>
+            )}
+            <div className="flex gap-2 mt-3">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => edit(s)}>Edit</button>
+              <button type="button" className="btn btn-ghost btn-sm text-[var(--color-primary)]" onClick={() => {
+                if (confirm("Delete sponsor?")) void api.deleteSponsor(s.id).then(load);
+              }}>Delete</button>
+            </div>
+          </article>
+        ))}
+        {items.length === 0 && (
+          <p className="text-sm text-[var(--color-muted)] sm:col-span-3">No sponsors yet. Add one above.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ForcePasswordChange({ admin, onDone }: { admin: Admin; onDone: () => void }) {
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (pw.length < 6) { setError("Min 6 characters"); return; }
+    if (pw !== pw2) { setError("Passwords don't match"); return; }
+    setBusy(true);
+    try {
+      await api.updatePassword(admin.id, pw);
+      onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--color-bg)]/80 backdrop-blur-sm px-4">
+      <div className="w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-card">
+        <h2 className="heading-lg !text-xl mb-2">Change your password</h2>
+        <p className="text-sm text-[var(--color-muted)] mb-6">
+          Your password is still set to the default. Choose a new one to continue.
+        </p>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <label className="block text-sm">New password
+            <input className="field mt-1.5" type="password" value={pw} onChange={(e) => setPw(e.target.value)} required minLength={6} autoFocus />
+          </label>
+          <label className="block text-sm">Confirm password
+            <input className="field mt-1.5" type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} required />
+          </label>
+          {error && <p className="text-sm text-[var(--color-primary)]">{error}</p>}
+          <button type="submit" className="btn btn-primary w-full" disabled={busy}>
+            {busy ? "Saving..." : "Change password"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

@@ -28,7 +28,7 @@ export const api = {
       body: JSON.stringify(body),
     }),
   login: (email: string, password: string) =>
-    req<{ ok: boolean; admin: Admin }>("/api/auth/login", {
+    req<LoginResult>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
@@ -71,11 +71,20 @@ export const api = {
   settings: () => req<SiteSettings>("/api/admin/settings"),
   saveSettings: (body: SiteSettings) =>
     req("/api/admin/settings", { method: "PUT", body: JSON.stringify(body) }),
+  sponsors: () => req<Sponsor[]>("/api/admin/sponsors"),
+  createSponsor: (body: SponsorInput) =>
+    req<{ ok: boolean; id: number }>("/api/admin/sponsors", { method: "POST", body: JSON.stringify(body) }),
+  updateSponsor: (id: number, body: SponsorInput) =>
+    req(`/api/admin/sponsors/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteSponsor: (id: number) =>
+    req(`/api/admin/sponsors/${id}`, { method: "DELETE" }),
   admins: () => req<AdminRow[]>("/api/admin/admins"),
   addAdmin: (body: { email: string; name?: string; password?: string }) =>
     req("/api/admin/admins", { method: "POST", body: JSON.stringify(body) }),
   removeAdmin: (id: number) =>
     req(`/api/admin/admins/${id}`, { method: "DELETE" }),
+  updatePassword: (id: number, password: string) =>
+    req(`/api/admin/admins/${id}/password`, { method: "PUT", body: JSON.stringify({ password }) }),
 };
 
 export type Admin = {
@@ -83,6 +92,13 @@ export type Admin = {
   email: string;
   name: string | null;
   role: string;
+  needsPasswordChange?: boolean;
+};
+
+export type LoginResult = {
+  ok: boolean;
+  admin: Admin;
+  needs_password_change?: boolean;
 };
 
 export type Inquiry = {
@@ -126,13 +142,89 @@ export type SiteSettings = {
   homepage_headline: string;
   homepage_subhead: string;
   homepage_cta_label: string;
+  motto: string;
+  practice_days: string;
+  practice_time: string;
+  practice_note: string;
+  pitch_address: string;
+  pitch_city: string;
+  pitch_maps_url: string;
+  instagram_url: string;
+  facebook_url: string;
+  about_body: string;
+  practice_body: string;
+  join_body: string;
+  sponsor_blurb: string;
+  sponsor_name: string;
+  duration: string;
+  first_session: string;
+  stats: string;
+  values: string;
+  teams: string;
+  join_steps: string;
+};
+
+export type ClubContentItem = {
+  value?: string;
+  label?: string;
+  title?: string;
+  body?: string;
+  name?: string;
+  side?: string;
+  description?: string;
+  step?: string;
+};
+
+export type ClubContent = {
+  motto: string;
+  practice_days: string;
+  practice_time: string;
+  practice_note: string;
+  pitch_address: string;
+  pitch_city: string;
+  pitch_maps_url: string;
+  instagram_url: string;
+  facebook_url: string;
+  about_body: string;
+  practice_body: string;
+  join_body: string;
+  sponsor_blurb: string;
+  sponsor_name: string;
+  duration: string;
+  first_session: string;
+  stats: ClubContentItem[];
+  values: ClubContentItem[];
+  teams: ClubContentItem[];
+  join_steps: ClubContentItem[];
 };
 
 export type SitePayload = {
   presentation: SiteSettings & { current_season: string };
+  club_content: ClubContent;
   homeImages: Media[];
   galleryImages: Media[];
   matches: Match[];
+  sponsors: Sponsor[];
+};
+
+export type Sponsor = {
+  id: number;
+  name: string;
+  blurb: string;
+  logo_url: string | null;
+  website_url: string | null;
+  sort_order: number;
+  published: boolean;
+  created_at: string;
+};
+
+export type SponsorInput = {
+  name: string;
+  blurb: string;
+  logo_url?: string | null;
+  website_url?: string | null;
+  sort_order: number;
+  published: boolean;
 };
 
 export type AdminRow = {

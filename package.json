@@ -8,6 +8,7 @@
     "dev:web": "vite",
     "dev:api": "tsx watch server/index.ts",
     "build": "tsc -b && vite build",
+    "deploy": "scp -r dist/* tcon@webhost:/var/www/pcolarugby.com/html/",
     "start": "NODE_ENV=production tsx server/index.ts",
     "db:migrate": "tsx server/migrate.ts",
     "typecheck": "tsc -b --noEmit"

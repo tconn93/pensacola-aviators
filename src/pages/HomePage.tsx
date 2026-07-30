@@ -8,8 +8,7 @@ import {
   Shield,
   Users,
 } from "lucide-react";
-import { club } from "@/data/club";
-import { api, type Match, type Media, type SitePayload } from "@/lib/api";
+import { api, type ClubContentItem, type Match, type Media, type SitePayload } from "@/lib/api";
 
 export function HomePage() {
   const [site, setSite] = useState<SitePayload | null>(null);
@@ -21,15 +20,20 @@ export function HomePage() {
   return (
     <main id="top">
       <Hero site={site} />
-      <StatsBar />
-      <About />
-      <Practice />
+      <StatsBar site={site} />
+      <About site={site} />
+      <Practice site={site} />
       <Schedule site={site} />
       <Gallery site={site} />
-      <Sponsors />
-      <Join />
+      <Sponsors site={site} />
+      <Join site={site} />
     </main>
   );
+}
+
+function cc<T>(site: SitePayload | null, key: string, fallback: T): T {
+  const val = (site?.club_content as Record<string, unknown>)?.[key];
+  return val !== undefined && val !== "" ? (val as T) : fallback;
 }
 
 function Hero({ site }: { site: SitePayload | null }) {
@@ -41,8 +45,12 @@ function Hero({ site }: { site: SitePayload | null }) {
   const headline = site?.presentation.homepage_headline || "Pensacola Aviators";
   const subhead =
     site?.presentation.homepage_subhead ||
-    "Hard-running club rugby on the Gulf Coast. Train with the Aviators and Aviatrix every week — first-timers welcome, no experience required.";
+    "Hard-running club rugby on the Gulf Coast.";
   const cta = site?.presentation.homepage_cta_label || "Join the club";
+  const motto = cc(site, "motto", "Fly the pitch");
+  const pDays = cc(site, "practice_days", "Tuesdays & Thursdays");
+  const pTime = cc(site, "practice_time", "6:00 – 8:00 PM");
+  const pAddr = cc(site, "pitch_address", "555 E Nine Mile Rd");
 
   useEffect(() => {
     if (template !== "carousel" || images.length <= 1) return;
@@ -105,7 +113,7 @@ function Hero({ site }: { site: SitePayload | null }) {
             )}
           </h1>
           <p className="font-[family-name:var(--font-display)] text-xl md:text-2xl tracking-[0.12em] uppercase text-[var(--color-crest-gold)] mb-5">
-            {club.mottoCompact}
+            {motto}
           </p>
           <p className="text-base md:text-lg text-[var(--color-muted)] max-w-xl leading-relaxed mb-8">
             {subhead}
@@ -121,11 +129,11 @@ function Hero({ site }: { site: SitePayload | null }) {
           <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-sm text-[var(--color-muted)]">
             <span className="inline-flex items-center gap-2">
               <Clock size={16} className="text-[var(--color-primary)]" />
-              {club.practice.days} · {club.practice.time}
+              {pDays} · {pTime}
             </span>
             <span className="inline-flex items-center gap-2">
               <MapPin size={16} className="text-[var(--color-primary)]" />
-              {club.pitch.address}
+              {pAddr}
             </span>
           </div>
         </div>
@@ -134,11 +142,13 @@ function Hero({ site }: { site: SitePayload | null }) {
   );
 }
 
-function StatsBar() {
+function StatsBar({ site }: { site: SitePayload | null }) {
+  const stats: ClubContentItem[] = cc(site, "stats", []);
+  if (!stats.length) return null;
   return (
     <section className="border-y border-[var(--color-border)] bg-[var(--color-bg-elevated)]">
       <div className="container-x grid grid-cols-2 md:grid-cols-4">
-        {club.stats.map((stat, i) => (
+        {stats.map((stat, i) => (
           <div
             key={stat.label}
             className={`py-7 md:py-9 px-4 md:px-6 ${
@@ -158,7 +168,10 @@ function StatsBar() {
   );
 }
 
-function About() {
+function About({ site }: { site: SitePayload | null }) {
+  const values: ClubContentItem[] = cc(site, "values", []);
+  const teams: ClubContentItem[] = cc(site, "teams", []);
+  const body = cc(site, "about_body", "");
   return (
     <section id="about" className="section-pad">
       <div className="container-x grid gap-12 lg:grid-cols-2 lg:gap-16">
@@ -170,29 +183,28 @@ function About() {
             Bound by the pack.
           </h2>
           <p className="text-[var(--color-muted)] text-base md:text-lg leading-relaxed mb-6">
-            Pensacola Aviators Rugby is the home of club rugby in Northwest
-            Florida — men's Aviators and women's Aviatrix training side by side,
-            competing in fifteens seasons and sevens weekends across the
-            Southeast.
+            {body || "Pensacola Aviators Rugby is the home of club rugby in Northwest Florida."}
           </p>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {club.values.map((v) => (
-              <div
-                key={v.title}
-                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-card"
-              >
-                <div className="heading-md text-[var(--color-primary)] mb-2">
-                  {v.title}
+          {values.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-3">
+              {values.map((v) => (
+                <div
+                  key={v.title}
+                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-card"
+                >
+                  <div className="heading-md text-[var(--color-primary)] mb-2">
+                    {v.title}
+                  </div>
+                  <p className="text-sm text-[var(--color-muted)] leading-relaxed">
+                    {v.body}
+                  </p>
                 </div>
-                <p className="text-sm text-[var(--color-muted)] leading-relaxed">
-                  {v.body}
-                </p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          {club.teams.map((team) => (
+          {teams.map((team) => (
             <article
               key={team.name}
               className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-card"
@@ -226,7 +238,18 @@ function About() {
   );
 }
 
-function Practice() {
+function Practice({ site }: { site: SitePayload | null }) {
+  const pDays = cc(site, "practice_days", "Tuesdays & Thursdays");
+  const pTime = cc(site, "practice_time", "6:00 – 8:00 PM");
+  const pNote = cc(site, "practice_note", "Open training — first-timers welcome");
+  const pAddr = cc(site, "pitch_address", "555 E Nine Mile Rd");
+  const pCity = cc(site, "pitch_city", "Pensacola, FL");
+  const pMaps = cc(site, "pitch_maps_url", "");
+  const pBody = cc(site, "practice_body", "");
+  const duration = cc(site, "duration", "2 hours");
+  const firstSession = cc(site, "first_session", "Free");
+  const igUrl = cc(site, "instagram_url", "");
+
   return (
     <section
       id="practice"
@@ -237,35 +260,36 @@ function Practice() {
           <p className="eyebrow mb-3">Practice</p>
           <h2 className="heading-lg mb-5">Where we train</h2>
           <p className="text-[var(--color-muted)] leading-relaxed mb-8 max-w-lg">
-            Open practices twice a week at our pitch on Nine Mile Road. Bring
-            athletic gear, water, and a willingness to learn.
+            {pBody || "Open practices twice a week at our pitch on Nine Mile Road."}
           </p>
           <div className="space-y-4">
             <InfoRow
               icon={<CalendarDays size={20} />}
               label="Days"
-              value={club.practice.days}
+              value={pDays}
             />
             <InfoRow
               icon={<Clock size={20} />}
               label="Time"
-              value={club.practice.time}
+              value={pTime}
             />
             <InfoRow
               icon={<MapPin size={20} />}
               label="Pitch"
-              value={`${club.pitch.address}, ${club.pitch.city}`}
+              value={`${pAddr}, ${pCity}`}
             />
           </div>
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
-            <a
-              href={club.pitch.mapsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-primary"
-            >
-              Open in Maps <ArrowRight size={16} />
-            </a>
+            {pMaps && (
+              <a
+                href={pMaps}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-primary"
+              >
+                Open in Maps <ArrowRight size={16} />
+              </a>
+            )}
             <a href="#join" className="btn btn-secondary">
               I want to train
             </a>
@@ -273,7 +297,7 @@ function Practice() {
         </div>
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-card flex flex-col justify-center">
           <p className="font-[family-name:var(--font-display)] text-2xl tracking-wide uppercase mb-4">
-            {club.practice.note}
+            {pNote}
           </p>
           <div className="grid grid-cols-2 gap-4 border-t border-[var(--color-border)] pt-6">
             <div>
@@ -281,7 +305,7 @@ function Practice() {
                 Duration
               </div>
               <div className="font-[family-name:var(--font-display)] text-xl tracking-wide">
-                2 hours
+                {duration}
               </div>
             </div>
             <div>
@@ -289,7 +313,7 @@ function Practice() {
                 First session
               </div>
               <div className="font-[family-name:var(--font-display)] text-xl tracking-wide">
-                Free
+                {firstSession}
               </div>
             </div>
           </div>
@@ -326,6 +350,9 @@ function InfoRow({
 function Schedule({ site }: { site: SitePayload | null }) {
   const matches = site?.matches || [];
   const season = site?.presentation.current_season || "Season";
+  const pDays = cc(site, "practice_days", "Tuesdays & Thursdays");
+  const pTime = cc(site, "practice_time", "6:00 – 8:00 PM");
+  const pAddr = cc(site, "pitch_address", "555 E Nine Mile Rd");
   const upcoming = matches.filter(
     (m) => m.status === "scheduled" || m.status === "postponed",
   );
@@ -364,15 +391,15 @@ function Schedule({ site }: { site: SitePayload | null }) {
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between gap-3">
               <dt className="text-[var(--color-subtle)]">When</dt>
-              <dd>{club.practice.days}</dd>
+              <dd>{pDays}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-[var(--color-subtle)]">Time</dt>
-              <dd>{club.practice.time}</dd>
+              <dd>{pTime}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-[var(--color-subtle)]">Where</dt>
-              <dd>{club.pitch.address}</dd>
+              <dd>{pAddr}</dd>
             </div>
           </dl>
         </article>
@@ -515,32 +542,55 @@ function Gallery({ site }: { site: SitePayload | null }) {
   );
 }
 
-function Sponsors() {
+function Sponsors({ site }: { site: SitePayload | null }) {
+  const sponsors = site?.sponsors || [];
+  const igUrl = cc(site, "instagram_url", "");
+  const fbUrl = cc(site, "facebook_url", "");
+  if (!sponsors.length) return null;
   return (
     <section className="section-pad !py-14">
       <div className="container-x">
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-8 md:px-10 shadow-card">
-          <p className="eyebrow mb-2">Proud sponsors</p>
-          <h2 className="heading-md !text-2xl mb-2">
-            {club.sponsors[0].name}
-          </h2>
-          <p className="text-sm text-[var(--color-muted)] max-w-md">
-            {club.sponsors[0].blurb} Interested in sponsoring? Reach out on
-            socials.
-          </p>
+        <p className="eyebrow mb-6 text-center">Proud sponsors</p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {sponsors.map((s) => (
+            <div key={s.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-8 shadow-card text-center">
+              {s.logo_url && (
+                <div className="aspect-[3/1] mb-4 flex items-center justify-center">
+                  <img src={s.logo_url} alt={s.name} className="max-h-14 max-w-full object-contain" />
+                </div>
+              )}
+              <h3 className="heading-md !text-xl mb-1">{s.name}</h3>
+              {s.blurb && <p className="text-sm text-[var(--color-muted)]">{s.blurb}</p>}
+              {s.website_url && (
+                <a href={s.website_url} target="_blank" rel="noreferrer" className="text-sm text-[var(--color-primary)] inline-block mt-2 hover:underline">
+                  Visit site →
+                </a>
+              )}
+            </div>
+          ))}
         </div>
+        {(igUrl || fbUrl) && (
+          <p className="text-sm text-[var(--color-muted)] text-center mt-6">
+            Interested in sponsoring? Reach out on socials.
+          </p>
+        )}
       </div>
     </section>
   );
 }
 
-function Join() {
+function Join({ site }: { site: SitePayload | null }) {
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [note, setNote] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const steps: ClubContentItem[] = cc(site, "join_steps", []);
+  const body = cc(site, "join_body", "");
+  const pDays = cc(site, "practice_days", "Tuesdays & Thursdays");
+  const pTime = cc(site, "practice_time", "6:00 – 8:00 PM");
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -570,29 +620,30 @@ function Join() {
           <p className="eyebrow mb-3">Recruiting</p>
           <h2 className="heading-lg mb-5">Ready to pull on the jersey?</h2>
           <p className="text-[var(--color-muted)] text-base md:text-lg leading-relaxed mb-8 max-w-xl">
-            The fastest way in is simple: show up. Drop your details so we know
-            you're coming, then join us Tuesday or Thursday at 6 PM.
+            {body || "The fastest way in is simple: show up. Drop your details so we know you're coming, then join us Tuesday or Thursday at 6 PM."}
           </p>
-          <ol className="space-y-4">
-            {club.joinSteps.map((s) => (
-              <li
-                key={s.step}
-                className="flex gap-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
-              >
-                <div className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-primary)] shrink-0 w-10">
-                  {s.step}
-                </div>
-                <div>
-                  <div className="heading-md !normal-case !tracking-normal mb-1">
-                    {s.title}
+          {steps.length > 0 && (
+            <ol className="space-y-4">
+              {steps.map((s) => (
+                <li
+                  key={s.step}
+                  className="flex gap-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+                >
+                  <div className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-primary)] shrink-0 w-10">
+                    {s.step}
                   </div>
-                  <p className="text-sm text-[var(--color-muted)] leading-relaxed">
-                    {s.body}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
+                  <div>
+                    <div className="heading-md !normal-case !tracking-normal mb-1">
+                      {s.title}
+                    </div>
+                    <p className="text-sm text-[var(--color-muted)] leading-relaxed">
+                      {s.body}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 md:p-8 shadow-card">
           <h3 className="heading-md mb-1">Tell us you're coming</h3>
@@ -609,7 +660,7 @@ function Join() {
                 You're on the list
               </p>
               <p className="text-sm text-[var(--color-muted)] mb-5">
-                Practice is {club.practice.days} at {club.practice.time}.
+                Practice is {pDays} at {pTime}.
               </p>
               <button
                 type="button"

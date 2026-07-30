@@ -7,6 +7,7 @@ export type AdminSession = {
   email: string;
   name: string | null;
   role: string;
+  needsPasswordChange?: boolean;
 };
 
 declare module "express-session" {
@@ -53,10 +54,22 @@ export async function loginAdmin(email: string, password: string) {
   if (!user) return null;
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return null;
+  const needsPasswordChange = await bcrypt.compare("aviators", user.password_hash);
   return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-  } satisfies AdminSession;
+    admin: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    } satisfies AdminSession,
+    needsPasswordChange,
+  };
+}
+
+export async function updateAdminPassword(id: number, newPassword: string) {
+  const hash = await bcrypt.hash(newPassword, 10);
+  await query(
+    `update admin_users set password_hash = $1 where id = $2`,
+    [hash, id],
+  );
 }

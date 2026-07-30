@@ -26,12 +26,7 @@ export function LoginPage() {
   return (
     <main className="min-h-dvh grid place-items-center px-5 bg-[var(--color-bg)]">
       <div className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-card">
-        <h1 className="heading-lg !text-2xl mb-2">Admin sign in</h1>
-        <p className="text-sm text-[var(--color-muted)] mb-6">
-          Club staff only. Default seed user after migrate:{" "}
-          <code className="text-[var(--color-fg)]">admin@pcolarugby.com</code> /{" "}
-          <code className="text-[var(--color-fg)]">aviators</code>
-        </p>
+        <h1 className="heading-lg !text-2xl mb-6">Admin sign in</h1>
         <form onSubmit={onSubmit} className="space-y-4">
           <label className="block text-sm font-medium">
             Email
