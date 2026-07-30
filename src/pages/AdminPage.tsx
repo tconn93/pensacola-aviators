@@ -307,6 +307,7 @@ function SchedulePanel() {
           <option value="home">Home</option>
           <option value="away">Away</option>
           <option value="neutral">Neutral</option>
+          <option value="tourney">Tourney</option>
         </select>
         <select className="field" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
           <option value="scheduled">Scheduled</option>
@@ -330,7 +331,7 @@ function SchedulePanel() {
         {matches.map((m) => (
           <li key={m.id} className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
             <div>
-              <div className="font-medium text-sm">vs {m.opponent}
+              <div className="font-medium text-sm">{m.location === "tourney" ? m.opponent : `vs ${m.opponent}`}
                 {m.is_matrix && <span className="ml-2 text-[0.6rem] font-semibold uppercase tracking-wider text-[var(--color-accent)] border border-[var(--color-accent)]/30 px-1.5 py-0.5 rounded">Matrix</span>}
               </div>
               <div className="text-xs text-[var(--color-muted)]">

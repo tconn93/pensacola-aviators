@@ -87,7 +87,7 @@ export function SchedulePage() {
                           {outcome}
                         </span>
                         <div className="min-w-0">
-                          <div className="font-medium text-sm truncate">vs {m.opponent}
+                          <div className="font-medium text-sm truncate">{m.location === "tourney" ? m.opponent : `vs ${m.opponent}`}
                             {m.is_matrix && <span className="ml-1 text-[0.55rem] font-semibold uppercase tracking-wider text-[var(--color-accent)]">Matrix</span>}
                           </div>
                           <div className="text-xs text-[var(--color-muted)]">
