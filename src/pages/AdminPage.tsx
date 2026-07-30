@@ -196,6 +196,7 @@ function MessagesPanel() {
 
 function SchedulePanel() {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [season, setSeason] = useState("Fall 2026");
   const [matches, setMatches] = useState<Match[]>([]);
   const [form, setForm] = useState({
@@ -230,15 +231,42 @@ function SchedulePanel() {
     await load();
   }
 
-  async function addMatch(e: FormEvent) {
+  async function saveMatch(e: FormEvent) {
     e.preventDefault();
-    await api.createMatch({
+    const payload = {
       ...form,
       our_score: form.our_score === "" ? null : Number(form.our_score),
       their_score: form.their_score === "" ? null : Number(form.their_score),
-    } as Partial<Match>);
+    };
+    if (editingId) {
+      await api.updateMatch(editingId, payload as Partial<Match>);
+    } else {
+      await api.createMatch(payload as Partial<Match>);
+    }
+    setEditingId(null);
+    setShowForm(false);
     setForm((f) => ({ ...f, opponent: "", notes: "" }));
     await load();
+  }
+
+  function editMatch(m: Match) {
+    setForm({
+      season: m.season,
+      team: m.team,
+      opponent: m.opponent,
+      match_date: m.match_date,
+      kickoff_time: m.kickoff_time || "2:00 PM",
+      location: m.location,
+      venue: m.venue || "555 E Nine Mile Rd",
+      status: m.status,
+      our_score: m.our_score?.toString() || "",
+      their_score: m.their_score?.toString() || "",
+      notes: m.notes || "",
+      published: m.published,
+      is_matrix: m.is_matrix,
+    });
+    setEditingId(m.id);
+    setShowForm(true);
   }
 
   return (
@@ -263,10 +291,10 @@ function SchedulePanel() {
         </button>
       </div>
       {showForm ? (
-        <form onSubmit={addMatch} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 grid gap-3 sm:grid-cols-2">
+        <form onSubmit={saveMatch} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2 flex items-center justify-between">
-            <h2 className="heading-md">Add match</h2>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowForm(false)}>Cancel</button>
+            <h2 className="heading-md">{editingId ? "Edit match" : "Add match"}</h2>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancel</button>
           </div>
           <input className="field" placeholder="Opponent" value={form.opponent} onChange={(e) => setForm({ ...form, opponent: e.target.value })} required />
           <input className="field" type="date" value={form.match_date} onChange={(e) => setForm({ ...form, match_date: e.target.value })} required />
@@ -293,7 +321,7 @@ function SchedulePanel() {
           <input type="checkbox" checked={form.is_matrix} onChange={(e) => setForm({ ...form, is_matrix: e.target.checked })} />
           Matrix match
         </label>
-        <button type="submit" className="btn btn-primary sm:col-span-2">Add match</button>
+        <button type="submit" className="btn btn-primary sm:col-span-2">{editingId ? "Update match" : "Add match"}</button>
       </form>
       ) : (
         <button type="button" className="btn btn-outline" onClick={() => setShowForm(true)}>Add match</button>
@@ -312,15 +340,24 @@ function SchedulePanel() {
                   : ""}
               </div>
             </div>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm text-[var(--color-primary)]"
-              onClick={() => {
-                if (confirm("Delete match?")) void api.deleteMatch(m.id).then(load);
-              }}
-            >
-              Delete
-            </button>
+            <div className="flex gap-2 shrink-0">
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => editMatch(m)}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm text-[var(--color-primary)]"
+                onClick={() => {
+                  if (confirm("Delete match?")) void api.deleteMatch(m.id).then(load);
+                }}
+              >
+                Delete
+              </button>
+            </div>
           </li>
         ))}
       </ul>
