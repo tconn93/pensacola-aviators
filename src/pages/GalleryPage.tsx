@@ -1,22 +1,55 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
-import { api, type SitePayload } from "@/lib/api";
+import { ArrowLeft, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
+import { api, type GalleryAlbum, type GalleryImage } from "@/lib/api";
 
 const PER_PAGE = 8;
 
 export function GalleryPage() {
-  const [site, setSite] = useState<SitePayload | null>(null);
-  const [page, setPage] = useState(0);
+  const [albums, setAlbums] = useState<GalleryAlbum[]>([]);
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [albumOffset, setAlbumOffset] = useState(0);
+  const [imageOffset, setImageOffset] = useState(0);
+  const [hasMoreAlbums, setHasMoreAlbums] = useState(true);
+  const [hasMoreImages, setHasMoreImages] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
+  // Initial load
   useEffect(() => {
-    api.site().then(setSite).catch(() => setSite(null));
+    api.galleryAlbums(0).then((data) => {
+      setAlbums(data);
+      setAlbumOffset(data.length);
+      setHasMoreAlbums(data.length >= PER_PAGE);
+    });
+    api.galleryImages(0).then((data) => {
+      setImages(data);
+      setImageOffset(data.length);
+      setHasMoreImages(data.length >= PER_PAGE);
+    });
   }, []);
 
-  const allImages = site?.galleryImages || [];
-  const totalPages = Math.max(1, Math.ceil(allImages.length / PER_PAGE));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageImages = allImages.slice(safePage * PER_PAGE, (safePage + 1) * PER_PAGE);
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loading && hasMoreImages) {
+          setLoading(true);
+          api.galleryImages(imageOffset).then((data) => {
+            setImages((prev) => [...prev, ...data]);
+            setImageOffset((prev) => prev + data.length);
+            setHasMoreImages(data.length >= PER_PAGE);
+            setLoading(false);
+          });
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loading, hasMoreImages, imageOffset]);
 
   return (
     <main>
@@ -25,64 +58,74 @@ export function GalleryPage() {
           <Link to="/" className="inline-flex items-center gap-1 text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)] mb-6">
             <ArrowLeft size={16} /> Back to home
           </Link>
-          <div className="mb-10">
+          <div className="mb-8">
             <p className="eyebrow mb-3">Gallery</p>
             <h1 className="heading-lg">Club moments</h1>
           </div>
 
-          {allImages.length === 0 ? (
-            <p className="text-sm text-[var(--color-muted)]">
-              Photos will appear here after the club publishes them from the media library.
-            </p>
+          {/* ── Albums ── */}
+          {albums.length > 0 && (
+            <div className="mb-10">
+              <h2 className="heading-md mb-4">Albums</h2>
+              <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin">
+                {albums.map((album) => (
+                  <Link
+                    key={album.id}
+                    to={`/gallery/${album.id}`}
+                    className="snap-start shrink-0 w-64 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden shadow-card hover:bg-[var(--color-bg-elevated)] transition-colors group"
+                  >
+                    <div className="aspect-[4/3] bg-[var(--color-bg-elevated)] relative overflow-hidden">
+                      {album.previews.length > 0 ? (
+                        <div className="grid grid-cols-2 h-full">
+                          {album.previews.slice(0, 2).map((url, i) => (
+                            <img key={i} src={url} alt="" className="h-full w-full object-cover" />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-[var(--color-muted)]">
+                          <ImageIcon size={32} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <h3 className="font-medium text-sm truncate group-hover:text-[var(--color-primary)]">{album.name}</h3>
+                      {album.description && <p className="text-xs text-[var(--color-muted)] mt-0.5 truncate">{album.description}</p>}
+                      <p className="text-xs text-[var(--color-subtle)] mt-1">{album.image_count} photo(s)</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Images ── */}
+          <h2 className="heading-md mb-4">All photos</h2>
+          {images.length === 0 && albums.length === 0 ? (
+            <p className="text-sm text-[var(--color-muted)]">Photos will appear here after the club publishes them.</p>
           ) : (
             <>
               <div className="grid gap-4 md:grid-cols-3">
-                {pageImages.map((img, i) => {
-                  const globalIdx = safePage * PER_PAGE + i;
-                  return (
-                    <figure
-                      key={img.id}
-                      className={`relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-card ${
-                        globalIdx === 0
-                          ? "md:col-span-2 md:row-span-2 aspect-[4/3] md:aspect-auto md:min-h-[28rem]"
-                          : "aspect-[4/3]"
-                      }`}
-                    >
-                      <img
-                        src={img.url}
-                        alt={img.alt}
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
-                      <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[var(--color-bg)]/90 to-transparent p-4 pt-10 text-sm text-[var(--color-muted)]">
-                        {img.alt || img.title}
-                      </figcaption>
-                    </figure>
-                  );
-                })}
+                {images.map((img, i) => (
+                  <figure
+                    key={img.id}
+                    className={`relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-card ${
+                      i === 0
+                        ? "md:col-span-2 md:row-span-2 aspect-[4/3] md:aspect-auto md:min-h-[28rem]"
+                        : "aspect-[4/3]"
+                    }`}
+                  >
+                    <img src={img.url} alt={img.alt} className="absolute inset-0 h-full w-full object-cover" />
+                    <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[var(--color-bg)]/90 to-transparent p-4 pt-10 text-sm text-[var(--color-muted)]">
+                      {img.alt || img.title}
+                    </figcaption>
+                  </figure>
+                ))}
               </div>
-
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-4 mt-10">
-                  <button
-                    type="button"
-                    className="btn btn-outline btn-sm"
-                    disabled={safePage === 0}
-                    onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  >
-                    <ChevronLeft size={16} /> Previous
-                  </button>
-                  <span className="text-sm text-[var(--color-muted)]">
-                    Page {safePage + 1} of {totalPages}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-outline btn-sm"
-                    disabled={safePage >= totalPages - 1}
-                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                  >
-                    Next <ChevronRight size={16} />
-                  </button>
-                </div>
+              {/* Sentinel for infinite scroll */}
+              <div ref={sentinelRef} className="h-10 mt-6" />
+              {loading && <p className="text-sm text-[var(--color-muted)] text-center">Loading more...</p>}
+              {!hasMoreImages && images.length > 0 && (
+                <p className="text-sm text-[var(--color-muted)] text-center mt-6">All photos loaded.</p>
               )}
             </>
           )}

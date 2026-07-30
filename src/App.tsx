@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { HomePage } from "./pages/HomePage";
 import { SchedulePage } from "./pages/SchedulePage";
 import { GalleryPage } from "./pages/GalleryPage";
+import { AlbumPage } from "./pages/AlbumPage";
 import { LoginPage } from "./pages/LoginPage";
 import { AdminPage } from "./pages/AdminPage";
 import { SiteHeader } from "./components/SiteHeader";
@@ -36,6 +37,16 @@ export default function App() {
           <>
             <SiteHeader />
             <GalleryPage />
+            <SiteFooter />
+          </>
+        }
+      />
+      <Route
+        path="/gallery/:id"
+        element={
+          <>
+            <SiteHeader />
+            <AlbumPage />
             <SiteFooter />
           </>
         }

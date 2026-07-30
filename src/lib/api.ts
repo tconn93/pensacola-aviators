@@ -85,6 +85,20 @@ export const api = {
     req(`/api/admin/admins/${id}`, { method: "DELETE" }),
   updatePassword: (id: number, password: string) =>
     req(`/api/admin/admins/${id}/password`, { method: "PUT", body: JSON.stringify({ password }) }),
+  albums: () => req<Album[]>("/api/admin/albums"),
+  createAlbum: (body: { name: string; description?: string; sort_order?: number }) =>
+    req<{ ok: boolean; id: number }>("/api/admin/albums", { method: "POST", body: JSON.stringify(body) }),
+  updateAlbum: (id: number, body: Record<string, unknown>) =>
+    req(`/api/admin/albums/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteAlbum: (id: number) =>
+    req(`/api/admin/albums/${id}`, { method: "DELETE" }),
+  // Gallery (public)
+  galleryAlbums: (offset: number, limit = 8) =>
+    req<GalleryAlbum[]>(`/api/gallery/albums?offset=${offset}&limit=${limit}`),
+  galleryAlbumImages: (albumId: number, offset: number, limit = 8) =>
+    req<GalleryImage[]>(`/api/gallery/albums/${albumId}/images?offset=${offset}&limit=${limit}`),
+  galleryImages: (offset: number, limit = 8) =>
+    req<GalleryImage[]>(`/api/gallery/images?offset=${offset}&limit=${limit}`),
 };
 
 export type Admin = {
@@ -237,4 +251,32 @@ export type AdminRow = {
   name: string | null;
   role: string;
   created_at: string;
+};
+
+export type Album = {
+  id: number;
+  name: string;
+  description: string;
+  cover_image_id: number | null;
+  sort_order: number;
+  image_count: number;
+  created_at: string;
+};
+
+export type GalleryAlbum = {
+  id: number;
+  name: string;
+  description: string;
+  cover_image_id: number | null;
+  image_count: number;
+  previews: string[];
+};
+
+export type GalleryImage = {
+  id: number;
+  title: string | null;
+  alt: string;
+  caption: string | null;
+  url: string;
+  sort_order: number;
 };

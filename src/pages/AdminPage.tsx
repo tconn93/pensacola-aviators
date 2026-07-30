@@ -13,7 +13,7 @@ import {
 } from "@/lib/api";
 import { JsonArrayEditor, type JsonArrayField } from "@/components/JsonArrayEditor";
 
-type Tab = "messages" | "schedule" | "media" | "site" | "sponsors" | "admins";
+type Tab = "messages" | "schedule" | "media" | "site" | "albums" | "sponsors" | "admins";
 
 export function AdminPage() {
   const navigate = useNavigate();
@@ -85,6 +85,7 @@ export function AdminPage() {
                 ["schedule", "Schedule"],
                 ["media", "Media"],
                 ["site", "Homepage"],
+                ["albums", "Albums"],
                 ["sponsors", "Sponsors"],
                 ["admins", "Admins"],
               ] as const
@@ -110,6 +111,7 @@ export function AdminPage() {
         {tab === "schedule" && <SchedulePanel />}
         {tab === "media" && <MediaPanel />}
         {tab === "site" && <SitePanel />}
+        {tab === "albums" && <AlbumsPanel />}
         {tab === "sponsors" && <SponsorsPanel />}
         {tab === "admins" && <AdminsPanel currentEmail={admin.email} />}
       </div>
@@ -309,9 +311,12 @@ function SchedulePanel() {
 
 function MediaPanel() {
   const [items, setItems] = useState<Media[]>([]);
+  const [albums, setAlbums] = useState<{ id: number; name: string }[]>([]);
+  const [uploadAlbum, setUploadAlbum] = useState("");
 
   const load = useCallback(async () => {
     setItems(await api.media());
+    setAlbums(await api.albums());
   }, []);
 
   useEffect(() => {
@@ -335,6 +340,7 @@ function MediaPanel() {
         show_in_gallery: true,
         show_on_home: false,
         published: true,
+        album_id: uploadAlbum ? Number(uploadAlbum) : undefined,
       });
     }
     await load();
@@ -362,6 +368,15 @@ function MediaPanel() {
             }}
           />
         </label>
+        {albums.length > 0 && (
+          <label className="text-sm flex items-center gap-2">
+            Album
+            <select className="field text-xs py-1" value={uploadAlbum} onChange={(e) => setUploadAlbum(e.target.value)}>
+              <option value="">None</option>
+              {albums.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </label>
+        )}
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((m) => (
@@ -741,6 +756,75 @@ function AdminsPanel({ currentEmail }: { currentEmail: string }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function AlbumsPanel() {
+  const [items, setItems] = useState<{ id: number; name: string; description: string; image_count: number }[]>([]);
+  const [name, setName] = useState("");
+  const [desc, setDesc] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const load = useCallback(async () => {
+    setItems(await api.albums());
+  }, []);
+
+  useEffect(() => { void load().catch(console.error); }, [load]);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    if (editingId) {
+      await api.updateAlbum(editingId, { name, description: desc });
+    } else {
+      await api.createAlbum({ name, description: desc });
+    }
+    setName("");
+    setDesc("");
+    setEditingId(null);
+    await load();
+  }
+
+  function edit(a: { id: number; name: string; description: string }) {
+    setName(a.name);
+    setDesc(a.description);
+    setEditingId(a.id);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="heading-lg !text-3xl mb-2">Albums</h1>
+        <p className="text-sm text-[var(--color-muted)]">Group images into albums for the gallery page.</p>
+      </div>
+      <form onSubmit={save} className="space-y-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 max-w-md">
+        <h2 className="heading-md">{editingId ? "Edit album" : "New album"}</h2>
+        <input className="field" placeholder="Album name" value={name} onChange={(e) => setName(e.target.value)} required />
+        <input className="field" placeholder="Description (optional)" value={desc} onChange={(e) => setDesc(e.target.value)} />
+        <div className="flex gap-2">
+          <button type="submit" className="btn btn-primary">{editingId ? "Update" : "Create"}</button>
+          {editingId && <button type="button" className="btn btn-ghost" onClick={() => { setName(""); setDesc(""); setEditingId(null); }}>Cancel</button>}
+        </div>
+      </form>
+      {items.length === 0 ? (
+        <p className="text-sm text-[var(--color-muted)]">No albums yet.</p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((a) => (
+            <div key={a.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-card">
+              <h3 className="font-medium text-sm">{a.name}</h3>
+              {a.description && <p className="text-xs text-[var(--color-muted)] mt-1">{a.description}</p>}
+              <p className="text-xs text-[var(--color-subtle)] mt-1">{a.image_count} image(s)</p>
+              <div className="flex gap-2 mt-3">
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => edit(a)}>Edit</button>
+                <button type="button" className="btn btn-ghost btn-sm text-[var(--color-primary)]" onClick={() => {
+                  if (confirm("Delete album \"" + a.name + "\"?")) void api.deleteAlbum(a.id).then(load);
+                }}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -355,11 +355,11 @@ app.get("/api/admin/media", requireAdmin, async (_req, res) => {
     rows.map((m: Record<string, unknown>) => ({
       ...m,
       url:
-        m.source_type === "path" && m.path
-          ? m.path
-          : m.source_type === "r2" && m.path
+        m.source_type === "r2" && m.path
+          ? r2PublicUrl(m.path as string)
+          : m.source_type === "path" && m.path
             ? m.path
-            : m.data_url || m.path || "",
+            : (m.data_url as string) || (m.path as string) || "",
     })),
   );
 });
@@ -383,6 +383,7 @@ app.post("/api/admin/media", requireAdmin, async (req, res) => {
   const showHome = Boolean(b.show_on_home);
   const published = b.published !== false;
   const uploadedBy = req.session.admin?.email || null;
+  const albumId = b.album_id ? Number(b.album_id) : null;
 
   // Auto-detect: if R2 env vars are set, upload to R2; otherwise use DB
   const useR2 = isR2Configured();
@@ -399,9 +400,9 @@ app.post("/api/admin/media", requireAdmin, async (req, res) => {
     const rows = await query<{ id: number }>(
       `insert into media_assets (
         title, alt, caption, source_type, path, mime_type,
-        show_in_gallery, show_on_home, published, sort_order, uploaded_by
-      ) values ($1,$2,$3,'r2',$4,$5,$6,$7,$8,$9,$10) returning id`,
-      [title, alt, caption, r2Key, mime, showGallery, showHome, published, sort, uploadedBy],
+        show_in_gallery, show_on_home, published, sort_order, uploaded_by, album_id
+      ) values ($1,$2,$3,'r2',$4,$5,$6,$7,$8,$9,$10,$11) returning id`,
+      [title, alt, caption, r2Key, mime, showGallery, showHome, published, sort, uploadedBy, albumId],
     );
     res.json({ ok: true, id: rows[0]?.id, url: r2PublicUrl(r2Key) });
   } else {
@@ -409,9 +410,9 @@ app.post("/api/admin/media", requireAdmin, async (req, res) => {
     const rows = await query<{ id: number }>(
       `insert into media_assets (
         title, alt, caption, source_type, data_url, mime_type,
-        show_in_gallery, show_on_home, published, sort_order, uploaded_by
-      ) values ($1,$2,$3,'upload',$4,$5,$6,$7,$8,$9,$10) returning id`,
-      [title, alt, caption, dataUrl, mime, showGallery, showHome, published, sort, uploadedBy],
+        show_in_gallery, show_on_home, published, sort_order, uploaded_by, album_id
+      ) values ($1,$2,$3,'upload',$4,$5,$6,$7,$8,$9,$10,$11) returning id`,
+      [title, alt, caption, dataUrl, mime, showGallery, showHome, published, sort, uploadedBy, albumId],
     );
     res.json({ ok: true, id: rows[0]?.id });
   }
@@ -544,7 +545,135 @@ app.delete("/api/admin/sponsors/:id", requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
-// ─── Admin: settings & admins ─────────────────────────────────────────────
+// ─── Admin: albums ──────────────────────────────────────────────────────
+
+app.get("/api/admin/albums", requireAdmin, async (_req, res) => {
+  const rows = await query(
+    `select a.*, (select count(*) from media_assets m where m.album_id = a.id)::int as image_count
+     from albums a order by a.sort_order asc, a.id desc`,
+  );
+  res.json(rows);
+});
+
+app.post("/api/admin/albums", requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const rows = await query<{ id: number }>(
+    `insert into albums (name, description, sort_order) values ($1,$2,$3) returning id`,
+    [String(b.name || "Album").trim(), String(b.description || "").trim(), Number(b.sort_order ?? 0)],
+  );
+  res.json({ ok: true, id: rows[0]?.id });
+});
+
+app.put("/api/admin/albums/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const b = req.body || {};
+  await query(
+    `update albums set name=$1, description=$2, sort_order=$3, cover_image_id=$4, updated_at=now() where id=$5`,
+    [
+      String(b.name || "").trim(),
+      String(b.description || "").trim(),
+      Number(b.sort_order ?? 0),
+      b.cover_image_id || null,
+      id,
+    ],
+  );
+  res.json({ ok: true });
+});
+
+app.delete("/api/admin/albums/:id", requireAdmin, async (req, res) => {
+  await query(`delete from albums where id = $1`, [Number(req.params.id)]);
+  res.json({ ok: true });
+});
+
+// ─── Gallery (public) ───────────────────────────────────────────────────
+
+app.get("/api/gallery/albums", async (_req, res) => {
+  const offset = Math.max(0, Number(_req.query.offset) || 0);
+  const limit = Math.min(50, Math.max(1, Number(_req.query.limit) || 8));
+  const albums = await query(
+    `select a.id, a.name, a.description, a.cover_image_id,
+            (select count(*) from media_assets m where m.album_id = a.id)::int as image_count
+     from albums a
+     where exists (select 1 from media_assets m where m.album_id = a.id and m.published = true)
+     order by a.sort_order asc, a.id desc
+     limit $1 offset $2`,
+    [limit, offset],
+  );
+  // Get up to 2 preview images per album
+  const albumIds = albums.map((a: Record<string, unknown>) => a.id);
+  let previews: Record<number, string[]> = {};
+  if (albumIds.length > 0) {
+    const previewRows = await query(
+      `select m.album_id, m.path, m.source_type, m.data_url from media_assets m
+       where m.album_id = any($1::int[]) and m.published = true
+       order by m.sort_order asc, m.id asc`,
+      [albumIds],
+    );
+    for (const row of previewRows as Array<Record<string, unknown>>) {
+      const aid = row.album_id as number;
+      if (!previews[aid]) previews[aid] = [];
+      if (previews[aid].length >= 2) continue;
+      const url = row.source_type === "r2" && row.path
+        ? r2PublicUrl(row.path as string)
+        : row.source_type === "path" && row.path
+          ? row.path as string
+          : (row.data_url as string) || "";
+      if (url) previews[aid].push(url);
+    }
+  }
+  const result = (albums as Array<Record<string, unknown>>).map((a) => ({
+    ...a,
+    previews: previews[a.id as number] || [],
+  }));
+  res.json(result);
+});
+
+app.get("/api/gallery/albums/:id/images", async (req, res) => {
+  const albumId = Number(req.params.id);
+  const offset = Math.max(0, Number(req.query.offset) || 0);
+  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 8));
+  const rows = await query(
+    `select id, title, alt, caption, source_type, path, data_url, mime_type, sort_order
+     from media_assets
+     where album_id = $1 and published = true
+     order by sort_order asc, id asc
+     limit $2 offset $3`,
+    [albumId, limit, offset],
+  );
+  res.json(
+    (rows as Array<Record<string, unknown>>).map((m) => ({
+      ...m,
+      url: m.source_type === "r2" && m.path
+        ? r2PublicUrl(m.path as string)
+        : m.source_type === "path" && m.path
+          ? m.path as string
+          : (m.data_url as string) || "",
+    })),
+  );
+});
+
+app.get("/api/gallery/images", async (_req, res) => {
+  const offset = Math.max(0, Number(_req.query.offset) || 0);
+  const limit = Math.min(50, Math.max(1, Number(_req.query.limit) || 8));
+  const rows = await query(
+    `select id, title, alt, caption, source_type, path, data_url, mime_type, sort_order
+     from media_assets
+     where album_id is null and published = true
+     order by sort_order asc, id asc
+     limit $1 offset $2`,
+    [limit, offset],
+  );
+  res.json(
+    (rows as Array<Record<string, unknown>>).map((m) => ({
+      ...m,
+      url: m.source_type === "r2" && m.path
+        ? r2PublicUrl(m.path as string)
+        : m.source_type === "path" && m.path
+          ? m.path as string
+          : (m.data_url as string) || "",
+    })),
+  );
+});
 
 app.get("/api/admin/settings", requireAdmin, async (_req, res) => {
   const rows = await query<{ key: string; value: string }>(
