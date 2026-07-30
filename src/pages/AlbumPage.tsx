@@ -119,7 +119,7 @@ export function AlbumPage() {
       )}
       <section className="section-pad mt-16">
         <div className="container-x">
-          <Link to={admin ? "/admin" : "/gallery"} className="inline-flex items-center gap-1 text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)] mb-6">
+          <Link to={admin ? "/admin?tab=media" : "/gallery"} className="inline-flex items-center gap-1 text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)] mb-6">
             <ArrowLeft size={16} /> {admin ? "Back to admin" : "Back to gallery"}
           </Link>
           <div className="mb-8">

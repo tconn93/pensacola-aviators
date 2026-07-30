@@ -31,6 +31,12 @@ export function AdminPage() {
       })
       .catch(() => navigate("/login"))
       .finally(() => setChecking(false));
+    // Check for ?tab= query param
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("tab");
+    if (t && ["messages", "schedule", "media", "site", "sponsors", "admins"].includes(t)) {
+      setTab(t as Tab);
+    }
   }, [navigate]);
 
   if (checking) {
