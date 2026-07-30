@@ -98,7 +98,7 @@ function MatchCard({ m }: { m: Match }) {
         <span className="text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[var(--color-primary)]">{m.team}</span>
         <span className="text-[0.7rem] uppercase tracking-wide text-[var(--color-muted)]">{m.location}</span>
       </div>
-      <h4 className="font-[family-name:var(--font-display)] text-xl tracking-wide uppercase mb-2">vs {m.opponent}
+      <h4 className="font-[family-name:var(--font-display)] text-xl tracking-wide uppercase mb-2">{m.location === "tourney" ? m.opponent : `vs ${m.opponent}`}
         {m.is_matrix && <span className="ml-2 text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--color-accent)] align-middle">Matrix</span>}
       </h4>
       <p className="text-sm text-[var(--color-muted)]">
