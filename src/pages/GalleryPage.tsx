@@ -3,10 +3,15 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 import { api, type GalleryAlbum, type GalleryImage } from "@/lib/api";
 import { ImageViewer } from "@/components/ImageViewer";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 const PER_PAGE = 8;
 
 export function GalleryPage() {
+  usePageMeta(
+    "Gallery",
+    "Photos from Pensacola Aviators Rugby practices, matches, and club events. Browse match day galleries and team photos.",
+  );
   const [albums, setAlbums] = useState<GalleryAlbum[]>([]);
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [albumOffset, setAlbumOffset] = useState(0);

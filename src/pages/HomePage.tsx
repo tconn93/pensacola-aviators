@@ -10,8 +10,13 @@ import {
   Users,
 } from "lucide-react";
 import { api, type ClubContentItem, type Match, type Media, type SitePayload } from "@/lib/api";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 export function HomePage() {
+  usePageMeta(
+    undefined,
+    "Men's and women's club rugby in Pensacola, FL. Open practices, match schedule, photos, and how to join — named for the Blue Angels.",
+  );
   const [site, setSite] = useState<SitePayload | null>(null);
 
   useEffect(() => {

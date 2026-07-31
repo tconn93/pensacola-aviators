@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { api, type AdminAlbumImage, type GalleryImage } from "@/lib/api";
 import { ImageViewer } from "@/components/ImageViewer";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 const PER_PAGE = 8;
 
@@ -12,6 +13,10 @@ export function AlbumPage() {
   const editMode = searchParams.get("edit") === "true";
   const albumId = Number(id);
   const [album, setAlbum] = useState<{ name: string; description: string } | null>(null);
+  usePageMeta(
+    album?.name ? `${album.name} — Photos` : "Gallery Album",
+    album?.description || "Photo album from Pensacola Aviators Rugby.",
+  );
   const [images, setImages] = useState<(GalleryImage | AdminAlbumImage)[]>([]);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);

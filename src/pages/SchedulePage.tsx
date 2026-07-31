@@ -2,8 +2,13 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, CalendarDays, Clock, MapPin } from "lucide-react";
 import { api, type Match, type SitePayload } from "@/lib/api";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 export function SchedulePage() {
+  usePageMeta(
+    "Schedule & Results",
+    "Pensacola Aviators Rugby match schedule, fixtures, and results. Upcoming home and away matches for the Fall season.",
+  );
   const [site, setSite] = useState<SitePayload | null>(null);
 
   useEffect(() => {
